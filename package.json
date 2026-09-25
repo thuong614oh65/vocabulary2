@@ -1,7 +1,10 @@
 {
-  "name": "vocabulary2-cloudflare-pages",
+  "name": "vocabulary2",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Vocabulary TLA - Cloudflare Pages (.pages.dev) Edition connected to Neon PostgreSQL"
+  "description": "Vocabulary TLA - Cloudflare Workers & Pages Edition connected to Neon PostgreSQL",
+  "devDependencies": {
+    "wrangler": "^3.99.0"
+  }
 }
