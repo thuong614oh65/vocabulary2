@@ -5,9 +5,10 @@
 import { PHONICS_RULES } from "./data/presets.js";
 
 const MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
     "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash"
+    "gemini-2.5-flash"
 ];
 
 export async function callGemini(env, prompt, jsonMode = false, inlineData = null) {
