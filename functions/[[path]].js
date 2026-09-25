@@ -149,27 +149,31 @@ export async function onRequest(context) {
             return htmlResponse(renderDangNhap(null), sid);
         }
         if (method === "POST") {
-            const formData = await request.formData();
-            const tenDangNhap = (formData.get("tenDangNhap") || "").trim();
-            const matKhau = (formData.get("matKhau") || "").trim();
+            try {
+                const formData = await request.formData();
+                const tenDangNhap = (formData.get("tenDangNhap") || "").trim();
+                const matKhau = (formData.get("matKhau") || "").trim();
 
-            const rows = await sqlQuery(
-                env,
-                "SELECT id, ten_dang_nhap, mat_khau, ho_ten, email FROM tai_khoan WHERE ten_dang_nhap = $1 AND mat_khau = $2 LIMIT 1",
-                [tenDangNhap, matKhau]
-            );
-            if (rows.length > 0) {
-                const r = rows[0];
-                session.taiKhoan = {
-                    id: Number(r.id),
-                    tenDangNhap: r.ten_dang_nhap,
-                    hoTen: r.ho_ten,
-                    email: r.email
-                };
-                await saveSession(env, sid, session);
-                return redirectResponse("/", sid);
-            } else {
-                return htmlResponse(renderDangNhap("Tên đăng nhập hoặc mật khẩu không đúng"), sid);
+                const rows = await sqlQuery(
+                    env,
+                    "SELECT id, ten_dang_nhap, mat_khau, ho_ten, email FROM tai_khoan WHERE ten_dang_nhap = $1 AND mat_khau = $2 LIMIT 1",
+                    [tenDangNhap, matKhau]
+                );
+                if (rows.length > 0) {
+                    const r = rows[0];
+                    session.taiKhoan = {
+                        id: Number(r.id),
+                        tenDangNhap: r.ten_dang_nhap,
+                        hoTen: r.ho_ten,
+                        email: r.email
+                    };
+                    await saveSession(env, sid, session);
+                    return redirectResponse("/", sid);
+                } else {
+                    return htmlResponse(renderDangNhap("Tên đăng nhập hoặc mật khẩu không đúng"), sid);
+                }
+            } catch (err) {
+                return htmlResponse(renderDangNhap("Lỗi kết nối dữ liệu: " + (err.message || "Vui lòng thử lại")), sid);
             }
         }
     }
@@ -179,22 +183,26 @@ export async function onRequest(context) {
             return htmlResponse(renderDangKy(null), sid);
         }
         if (method === "POST") {
-            const formData = await request.formData();
-            const tenDangNhap = (formData.get("tenDangNhap") || "").trim();
-            const matKhau = (formData.get("matKhau") || "").trim();
-            const hoTen = (formData.get("hoTen") || "").trim();
-            const email = (formData.get("email") || "").trim() || null;
+            try {
+                const formData = await request.formData();
+                const tenDangNhap = (formData.get("tenDangNhap") || "").trim();
+                const matKhau = (formData.get("matKhau") || "").trim();
+                const hoTen = (formData.get("hoTen") || "").trim();
+                const email = (formData.get("email") || "").trim() || null;
 
-            const exists = await sqlQuery(env, "SELECT id FROM tai_khoan WHERE ten_dang_nhap = $1 LIMIT 1", [tenDangNhap]);
-            if (exists.length > 0) {
-                return htmlResponse(renderDangKy("Tên đăng nhập đã tồn tại!"), sid);
+                const exists = await sqlQuery(env, "SELECT id FROM tai_khoan WHERE ten_dang_nhap = $1 LIMIT 1", [tenDangNhap]);
+                if (exists.length > 0) {
+                    return htmlResponse(renderDangKy("Tên đăng nhập đã tồn tại!"), sid);
+                }
+                await sqlQuery(
+                    env,
+                    "INSERT INTO tai_khoan (ten_dang_nhap, mat_khau, ho_ten, email) VALUES ($1, $2, $3, $4)",
+                    [tenDangNhap, matKhau, hoTen, email]
+                );
+                return redirectResponse("/dangnhap", sid);
+            } catch (err) {
+                return htmlResponse(renderDangKy("Lỗi đăng ký: " + (err.message || "Vui lòng thử lại")), sid);
             }
-            await sqlQuery(
-                env,
-                "INSERT INTO tai_khoan (ten_dang_nhap, mat_khau, ho_ten, email) VALUES ($1, $2, $3, $4)",
-                [tenDangNhap, matKhau, hoTen, email]
-            );
-            return redirectResponse("/dangnhap", sid);
         }
     }
 

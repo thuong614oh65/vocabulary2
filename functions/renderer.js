@@ -29,9 +29,9 @@ export function escJs(str) {
 export function renderDangNhap(loi = null) {
     let html = TEMPLATES["dang-nhap"];
     if (loi) {
-        html = html.replace(/<p\s+th:if="\$\{loi\}"[^>]*><\/p>/i, `<p class="text-danger text-center mt-2 fw-bold">${esc(loi)}</p>`);
+        html = html.replace(/<div\s+class="loi"[\s\S]*?<\/div>/i, `<div class="loi">${esc(loi)}</div>`);
     } else {
-        html = html.replace(/<p\s+th:if="\$\{loi\}"[^>]*><\/p>/i, "");
+        html = html.replace(/<div\s+class="loi"[\s\S]*?<\/div>/i, "");
     }
     return html;
 }
@@ -40,9 +40,9 @@ export function renderDangNhap(loi = null) {
 export function renderDangKy(loi = null) {
     let html = TEMPLATES["dang-ky"];
     if (loi) {
-        html = html.replace(/<p\s+th:if="\$\{loi\}"[^>]*><\/p>/i, `<p class="text-danger text-center mt-2 fw-bold">${esc(loi)}</p>`);
+        html = html.replace(/<div\s+class="loi"[\s\S]*?<\/div>/i, `<div class="loi">${esc(loi)}</div>`);
     } else {
-        html = html.replace(/<p\s+th:if="\$\{loi\}"[^>]*><\/p>/i, "");
+        html = html.replace(/<div\s+class="loi"[\s\S]*?<\/div>/i, "");
     }
     return html;
 }
