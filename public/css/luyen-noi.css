@@ -1,0 +1,443 @@
+/* =========================================================
+   LUYỆN NÓI TIẾNG ANH - STYLESHEET NÂNG CAO
+   Chấm điểm chuẩn IELTS/CEFR 5 tiêu chí
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #f0f4fd 0%, #e9f0fc 100%);
+    min-height: 100vh;
+    color: #2b2d42;
+}
+
+.luyen-noi-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px 15px;
+}
+
+.main-wrapper {
+    width: 100%;
+    max-width: 820px;
+}
+
+/* Header */
+.header-section {
+    margin-bottom: 25px;
+}
+
+.header-icon {
+    font-size: 52px;
+    margin-bottom: 8px;
+}
+
+.header-section h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e3a8a;
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.header-section .subtitle {
+    color: #64748b;
+    font-size: 15px;
+    margin-top: 6px;
+}
+
+/* Card Box */
+.card-box {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.select-custom {
+    border-radius: 12px;
+    padding: 10px 14px;
+    border: 1.5px solid #cbd5e1;
+    font-size: 15px;
+}
+
+.select-custom:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.btn-bat-dau {
+    border-radius: 12px;
+    padding: 11px;
+    font-weight: 700;
+    background: #2563eb;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btn-bat-dau:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* Word Card */
+.word-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e2e8f0;
+}
+
+.word-english {
+    font-size: 38px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+}
+
+.word-ipa {
+    font-size: 20px;
+    font-family: "Lucida Sans Unicode", "DejaVu Sans", "Segoe UI", Arial, sans-serif;
+    color: #2563eb;
+    background: #eff6ff;
+    display: inline-block;
+    padding: 4px 16px;
+    border-radius: 20px;
+    border: 1px solid #bfdbfe;
+    font-weight: 600;
+}
+
+.word-vietnamese {
+    font-size: 18px;
+    color: #475569;
+}
+
+.btn-sample-audio {
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+/* Microphone Button & Animation */
+.btn-mic {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.35);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+}
+
+.btn-mic .mic-icon {
+    font-size: 40px;
+}
+
+.btn-mic:hover {
+    transform: scale(1.06);
+    box-shadow: 0 12px 30px rgba(239, 68, 68, 0.45);
+}
+
+.btn-mic.recording {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: pulse-green 1.5s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        transform: scale(0.98);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(0.98);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.mic-status {
+    font-size: 16px;
+    color: #334155;
+}
+
+/* Sound Wave Visualizer Animation */
+.sound-wave {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    height: 35px;
+}
+
+.sound-wave span {
+    display: inline-block;
+    width: 6px;
+    background: #2563eb;
+    border-radius: 3px;
+    animation: wave-anim 1.2s ease-in-out infinite alternate;
+}
+
+.sound-wave span:nth-child(1) { height: 10px; animation-delay: 0.1s; }
+.sound-wave span:nth-child(2) { height: 25px; animation-delay: 0.3s; }
+.sound-wave span:nth-child(3) { height: 35px; animation-delay: 0.2s; }
+.sound-wave span:nth-child(4) { height: 20px; animation-delay: 0.4s; }
+.sound-wave span:nth-child(5) { height: 12px; animation-delay: 0.15s; }
+
+@keyframes wave-anim {
+    0% { transform: scaleY(0.3); }
+    100% { transform: scaleY(1.2); }
+}
+
+/* =========================================================
+   RESULT BOX - KẾT QUẢ CHẤM ĐIỂM NÂNG CAO
+   ========================================================= */
+
+.result-box {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+}
+
+/* Score Badge */
+.score-badge {
+    color: white;
+    font-size: 1.1rem !important;
+}
+
+.score-badge.score-excellent {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.score-badge.score-good {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.score-badge.score-average {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.score-badge.score-poor {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* IPA Comparison Box */
+.ipa-comparison-box {
+    font-family: "Lucida Sans Unicode", "DejaVu Sans", monospace;
+}
+
+.ipa-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ipa-label {
+    font-size: 12px;
+    min-width: 58px;
+    flex-shrink: 0;
+}
+
+.ipa-value {
+    font-size: 16px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 8px;
+    letter-spacing: 0.5px;
+}
+
+.ipa-target {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.ipa-recognized.ipa-ok {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.ipa-recognized.ipa-warn {
+    background: #fef9c3;
+    color: #854d0e;
+    border: 1px solid #fde68a;
+}
+
+/* Score Breakdown Box */
+.score-breakdown-box {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1.5px solid #bae6fd;
+}
+
+.breakdown-progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #e2e8f0;
+}
+
+.breakdown-progress .progress-bar {
+    border-radius: 4px;
+    transition: width 0.6s ease;
+}
+
+.breakdown-label {
+    color: #374151;
+}
+
+.breakdown-score {
+    color: #1e40af;
+    min-width: 40px;
+    text-align: right;
+}
+
+/* Phoneme Cards */
+.phoneme-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.phoneme-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    min-height: 70px;
+    border-radius: 10px;
+    padding: 6px 4px;
+    cursor: default;
+    transition: transform 0.15s;
+    font-family: "Lucida Sans Unicode", "DejaVu Sans", monospace;
+    position: relative;
+}
+
+.phoneme-card:hover {
+    transform: scale(1.08);
+}
+
+.phoneme-card-correct {
+    background: #dcfce7;
+    border: 2px solid #86efac;
+    color: #166534;
+}
+
+.phoneme-card-incorrect {
+    background: #fee2e2;
+    border: 2px solid #fca5a5;
+    color: #991b1b;
+}
+
+.phoneme-card-missing {
+    background: #f3f4f6;
+    border: 2px dashed #9ca3af;
+    color: #6b7280;
+}
+
+.phoneme-symbol {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.phoneme-word {
+    font-size: 11px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    opacity: 0.75;
+    margin-top: 2px;
+}
+
+.phoneme-icon {
+    font-size: 14px;
+    margin-top: 3px;
+    font-weight: 800;
+}
+
+.phoneme-note {
+    font-size: 9px;
+    text-align: center;
+    line-height: 1.2;
+    margin-top: 2px;
+    max-width: 54px;
+    word-break: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    opacity: 0.85;
+}
+
+/* Legacy phoneme tags (fallback) */
+.phoneme-tag {
+    font-size: 14px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.phoneme-correct {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.phoneme-incorrect {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* Feedback */
+.result-feedback {
+    background: #f1f5f9;
+    border-left: 4px solid #3b82f6;
+}
+
+/* Encouragement */
+.result-encouragement {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border: 1px solid #bbf7d0;
+    font-size: 15px;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .word-english {
+        font-size: 30px;
+    }
+    .word-ipa {
+        font-size: 17px;
+    }
+    .btn-mic {
+        width: 75px;
+        height: 75px;
+    }
+    .btn-mic .mic-icon {
+        font-size: 34px;
+    }
+    .phoneme-card {
+        width: 48px;
+        min-height: 62px;
+    }
+    .phoneme-symbol {
+        font-size: 14px;
+    }
+}

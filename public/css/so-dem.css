@@ -1,0 +1,339 @@
+/* ============================================================
+   BẢNG SỐ ĐẾM & SỐ THỨ TỰ TIẾNG ANH - STYLESHEET
+   ============================================================ */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: #0f172a;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color: #f8fafc;
+    min-height: 100vh;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.numbers-page-header {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    padding: 24px 16px 20px;
+    text-align: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    margin-bottom: 20px;
+}
+
+.numbers-page-header h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 6px;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.numbers-page-header p {
+    font-size: 0.95rem;
+    color: #c7d2fe;
+    margin: 0 0 12px;
+}
+
+.btn-back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+}
+
+.btn-back-home:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* ============================================================
+   THANH ĐIỀU HƯỚNG TAB CHÍNH
+   ============================================================ */
+.main-tab-nav {
+    display: inline-flex;
+    background: rgba(30, 41, 59, 0.9);
+    padding: 6px;
+    border-radius: 35px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.btn-tab {
+    background: none;
+    border: 1px solid transparent;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 10px 22px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-tab.active {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff;
+    border-color: #818cf8;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.45);
+}
+
+/* ============================================================
+   CONTAINER & SECTIONS
+   ============================================================ */
+.numbers-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px 80px;
+    animation: fadeInSec 0.3s ease-out;
+}
+
+#tab-ordinal {
+    display: none; /* Mặc định hiển thị tab số đếm trước */
+}
+
+.num-section {
+    background: #1e293b;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.section-ordinal {
+    background: #1e293b;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+@keyframes fadeInSec {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.num-section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+}
+
+.num-section-title small {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+/* ============================================================
+   GRID & CARDS (1 Ô GỒM SỐ & CHỮ)
+   ============================================================ */
+.num-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+    gap: 12px;
+}
+
+.num-card {
+    position: relative;
+    background: #0f172a;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 16px 10px 14px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.num-card:hover {
+    transform: translateY(-4px);
+    border-color: #818cf8;
+    background: #1e1b4b;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+
+.num-card:active {
+    transform: scale(0.97);
+}
+
+/* Animation khi phát âm */
+.num-card.playing {
+    border-color: #38bdf8 !important;
+    background: linear-gradient(135deg, #0369a1, #0284c7) !important;
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.7) !important;
+    transform: scale(1.05);
+    animation: cardPulse 0.8s infinite alternate;
+}
+
+@keyframes cardPulse {
+    from { box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+    to { box-shadow: 0 0 30px rgba(56, 189, 248, 0.9); }
+}
+
+/* CARD DETAILS */
+.num-digit {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #38bdf8;
+    line-height: 1.1;
+    margin-bottom: 4px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card-teen .num-digit {
+    color: #a855f7;
+}
+
+.card-twenty .num-digit {
+    color: #ec4899;
+}
+
+.card-tens .num-digit {
+    color: #f59e0b;
+}
+
+.card-large .num-digit {
+    color: #10b981;
+    font-size: 1.4rem;
+}
+
+/* STYLES CHO THẺ SỐ THỨ TỰ (ORDINAL) */
+.card-ord .num-digit {
+    color: #fbbf24;
+}
+
+.card-ord-special .num-digit {
+    color: #f43f5e; /* Màu đỏ nổi bật cho 1st, 2nd, 3rd */
+}
+
+.num-word {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 2px;
+    word-break: break-word;
+}
+
+.num-ipa {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    font-family: 'Lucida Sans', 'Arial Unicode MS', sans-serif;
+    margin-bottom: 4px;
+}
+
+.num-vi {
+    font-size: 0.75rem;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+}
+
+.num-card:hover .num-vi {
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.num-card.playing .num-digit,
+.num-card.playing .num-word,
+.num-card.playing .num-ipa,
+.num-card.playing .num-vi {
+    color: #fff !important;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.play-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(15, 23, 42, 0.95);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 9999;
+}
+
+.play-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    .numbers-page-header h1 {
+        font-size: 1.35rem;
+    }
+    .btn-tab {
+        font-size: 0.82rem;
+        padding: 8px 14px;
+    }
+    .num-grid {
+        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+        gap: 8px;
+    }
+    .num-card {
+        padding: 12px 6px 10px;
+    }
+    .num-digit {
+        font-size: 1.5rem;
+    }
+    .card-large .num-digit {
+        font-size: 1.2rem;
+    }
+    .num-word {
+        font-size: 0.88rem;
+    }
+    .num-ipa {
+        font-size: 0.72rem;
+    }
+    .num-vi {
+        font-size: 0.7rem;
+    }
+}

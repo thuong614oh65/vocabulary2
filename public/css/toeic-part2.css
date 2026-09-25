@@ -1,0 +1,310 @@
+/* =========================================================
+   CSS CHO TÍNH NĂNG LUYỆN NGHE TOEIC PART 2
+   ========================================================= */
+
+:root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success-color: #16a34a;
+    --danger-color: #dc2626;
+    --warning-color: #d97706;
+    --bg-page: #f8fafc;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+}
+
+body {
+    background-color: var(--bg-page);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+/* Header */
+.part2-header {
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Mode tabs */
+.mode-tabs {
+    background: #f1f5f9;
+}
+
+.mode-tab-btn {
+    border-radius: 30px !important;
+    padding: 8px 22px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.mode-tab-btn.active {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+
+/* Audio Banner */
+.audio-control-banner {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+    transition: all 0.3s ease;
+}
+
+.audio-status-text {
+    font-size: 16px;
+    color: #1e40af;
+}
+
+/* Play All Button */
+.btn-play-all {
+    background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+    color: #ffffff;
+    border: none;
+    transition: all 0.25s ease;
+}
+
+.btn-play-all:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+}
+
+.btn-play-all.playing {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+/* Question Box */
+.question-display-box {
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    transition: all 0.3s ease;
+}
+
+.question-display-box.audio-highlight {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.question-display-box.revealed {
+    border: 2px solid #93c5fd;
+    background: #f0f7ff;
+}
+
+/* Choices Cards */
+.choice-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    user-select: none;
+}
+
+.choice-card:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+    transform: translateY(-1px);
+}
+
+.choice-badge {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+/* Khi người dùng chọn đáp án */
+.choice-card.selected {
+    border-color: #2563eb !important;
+    background: #eff6ff !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+}
+
+.choice-card.selected .choice-badge {
+    background: #2563eb !important;
+    color: #ffffff !important;
+}
+
+/* Khi âm thanh lựa chọn này đang đọc */
+.choice-card.audio-highlight {
+    border-color: #f59e0b !important;
+    background: #fffbeb !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25);
+}
+
+.choice-card.audio-highlight .choice-badge {
+    background: #f59e0b !important;
+    color: #ffffff !important;
+}
+
+/* Khi đã chấm điểm - Kết quả đúng */
+.choice-card.result-correct {
+    border-color: #16a34a !important;
+    background: #f0fdf4 !important;
+}
+
+.choice-card.result-correct .choice-badge {
+    background: #16a34a !important;
+    color: #ffffff !important;
+}
+
+/* Khi đã chấm điểm - Lựa chọn sai */
+.choice-card.result-wrong {
+    border-color: #dc2626 !important;
+    background: #fef2f2 !important;
+}
+
+.choice-card.result-wrong .choice-badge {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+/* Tips Box (Mẹo giải & Bẫy) */
+.tips-box {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 1px solid #fde68a;
+    box-shadow: 0 4px 16px rgba(217, 119, 6, 0.1);
+    animation: fadeIn 0.4s ease;
+}
+
+.text-amber-900 {
+    color: #78350f;
+}
+
+.tips-content {
+    font-size: 15px;
+    line-height: 1.7;
+    white-space: pre-line;
+}
+
+/* Question pills navigation in footer */
+.question-pills-bar {
+    max-width: 480px;
+    scrollbar-width: thin;
+}
+
+.q-pill {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: 17px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.q-pill:hover {
+    background: #f1f5f9;
+}
+
+.q-pill.active {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+.q-pill.correct {
+    border-color: #16a34a;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.q-pill.correct.active {
+    background: #16a34a;
+    color: #ffffff;
+}
+
+.q-pill.wrong {
+    border-color: #dc2626;
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.q-pill.wrong.active {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+/* Score Circle Modal */
+.score-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: #eff6ff;
+    border: 6px solid #bfdbfe;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-card {
+    min-width: 320px;
+    max-width: 90%;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .question-pills-bar {
+        max-width: 200px;
+    }
+    .badge-cau-so {
+        font-size: 14px;
+    }
+}

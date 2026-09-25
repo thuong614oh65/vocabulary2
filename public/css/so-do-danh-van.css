@@ -1,0 +1,1466 @@
+/* =========================================================
+   SƠ ĐỒ TƯ DUY QUY LUẬT ĐÁNH VẦN TIẾNG ANH (PHONICS MINDMAP)
+   Thiết kế chuẩn sơ đồ tư duy tỏa tròn (Radial Mindmap)
+   ========================================================= */
+
+:root {
+    --sd-bg: #f8fafc;
+    --sd-card-bg: #ffffff;
+    --sd-primary-red: #dc2626;
+    --sd-accent-red: #ef4444;
+    --sd-gold: #f59e0b;
+    --sd-text-dark: #0f172a;
+    --sd-text-muted: #64748b;
+    --sd-border: #e2e8f0;
+}
+
+body {
+    background-color: var(--sd-bg);
+    color: var(--sd-text-dark);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.sd-page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================================================
+   1. HEADER
+   ========================================================= */
+.sd-header {
+    background: #0f172a;
+    color: #ffffff;
+    padding: 14px 20px;
+    border-bottom: 2px solid #1e293b;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.sd-header-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.sd-header-left {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-sd-back-home, .btn-sd-back-ipa, .btn-sd-back-study {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-sd-back-home {
+    background: #334155;
+    color: #f1f5f9;
+}
+.btn-sd-back-home:hover {
+    background: #475569;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.btn-sd-back-ipa {
+    background: #0284c7;
+    color: #ffffff;
+}
+.btn-sd-back-ipa:hover {
+    background: #0369a1;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.btn-sd-back-study {
+    background: #16a34a;
+    color: #ffffff;
+}
+.btn-sd-back-study:hover {
+    background: #15803d;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.sd-header-center {
+    text-align: center;
+    flex: 1;
+    min-width: 280px;
+}
+
+.sd-title {
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    margin: 0;
+    background: linear-gradient(135deg, #38bdf8, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.sd-subtitle {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin: 2px 0 0 0;
+}
+
+.sd-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Switch toggle tự đọc khi hover */
+.sd-toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background: #1e293b;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #334155;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.sd-toggle-wrap:hover {
+    background: #334155;
+}
+
+.sd-toggle-wrap input {
+    display: none;
+}
+
+.sd-toggle-slider {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background-color: #64748b;
+    border-radius: 20px;
+    transition: 0.3s;
+}
+
+.sd-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.sd-toggle-wrap input:checked + .sd-toggle-slider {
+    background-color: #10b981;
+}
+
+.sd-toggle-wrap input:checked + .sd-toggle-slider:before {
+    transform: translateX(16px);
+}
+
+.sd-toggle-text {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+/* =========================================================
+   2. TÌM KIẾM & BỘ LỌC
+   ========================================================= */
+.sd-search-filter-section {
+    background: #ffffff;
+    border-bottom: 1px solid var(--sd-border);
+    padding: 16px 0 10px 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.sd-search-bar {
+    border-radius: 30px;
+    overflow: hidden;
+    border: 2px solid #cbd5e1;
+    transition: border-color 0.2s;
+}
+
+.sd-search-bar:focus-within {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 0.2rem rgba(2, 132, 199, 0.2);
+}
+
+.sd-search-bar input {
+    font-size: 0.95rem;
+    padding: 10px 14px;
+}
+
+.sd-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
+
+.sd-search-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sd-search-item:hover {
+    background: #f0fdf4;
+}
+
+/* =========================================================
+   3. HỆ THỐNG ĐIỀU HƯỚNG 3 CẤP (3-LEVEL NAVIGATION VIEWS)
+   Cấp 1: Bảng danh mục ở ngoài (Category Hub)
+   Cấp 2: Bảng danh sách các âm của nhóm (Sounds List Arena)
+   Cấp 3: Sân khấu sơ đồ tư duy chi tiết (Mindmap Arena)
+   ========================================================= */
+
+.sd-view-section {
+    padding: 24px 0 40px 0;
+    animation: sdFadeIn 0.3s ease-in-out;
+}
+
+@keyframes sdFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Level 1: Category Hub --- */
+.sd-hub-intro {
+    max-width: 800px;
+    margin: 0 auto 30px auto;
+}
+
+.sd-hub-pill-badge {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+    color: #0369a1;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    border: 1px solid #bae6fd;
+}
+
+.sd-hub-heading {
+    font-size: 2.1rem;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+    margin-top: 10px;
+}
+
+.sd-hub-lead {
+    font-size: 1.05rem;
+    color: #64748b;
+}
+
+.sd-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.sd-cat-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+}
+
+.sd-cat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--cat-accent, #3b82f6);
+}
+
+.sd-cat-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1);
+    border-color: var(--cat-accent, #3b82f6);
+}
+
+.sd-cat-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.sd-cat-icon-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--cat-bg-light, #eff6ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sd-cat-title-wrap {
+    flex: 1;
+}
+
+.sd-cat-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 2px 0;
+    line-height: 1.3;
+}
+
+.sd-cat-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: var(--cat-badge-bg, #dbeafe);
+    color: var(--cat-accent, #1d4ed8);
+}
+
+.sd-cat-desc {
+    font-size: 0.92rem;
+    color: #64748b;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.sd-cat-preview-sounds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.sd-cat-preview-pill {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sd-cat-preview-pill small {
+    color: #dc2626;
+}
+
+.sd-cat-footer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px dashed #e2e8f0;
+    color: var(--cat-accent, #2563eb);
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+/* --- Level 2: Sounds List Arena --- */
+.sd-nav-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.btn-sd-nav-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    color: #1e293b;
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 8px 18px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-sd-nav-back:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+    transform: translateX(-3px);
+}
+
+.btn-sd-nav-hub {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    color: #475569;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-sd-nav-hub:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.sd-breadcrumb-trail {
+    font-size: 0.95rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sd-breadcrumb-trail .crumb-root {
+    cursor: pointer;
+    color: #0284c7;
+    font-weight: 700;
+}
+
+.sd-breadcrumb-trail .crumb-root:hover {
+    text-decoration: underline;
+}
+
+.sd-breadcrumb-trail .crumb-curr {
+    color: #0f172a;
+    font-weight: 800;
+}
+
+.sd-group-banner {
+    background: linear-gradient(135deg, #ffffff, #f8fafc);
+    border: 2px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.group-banner-icon {
+    font-size: 2.6rem;
+    width: 68px;
+    height: 68px;
+    border-radius: 18px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid #e2e8f0;
+}
+
+.group-banner-title {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.group-banner-desc {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.sd-sounds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.sd-sound-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px 22px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.sd-sound-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+    border-color: #38bdf8;
+}
+
+.sd-sc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.sd-sc-main-sound {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sd-sc-letter {
+    font-size: 1.55rem;
+    font-weight: 900;
+    color: #dc2626;
+    background: #fee2e2;
+    padding: 4px 14px;
+    border-radius: 12px;
+    border: 1.5px solid #fca5a5;
+    letter-spacing: 0.5px;
+}
+
+.sd-sc-ipa {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0284c7;
+    background: #f0f9ff;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid #bae6fd;
+}
+
+.sd-sc-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-sc-audio, .btn-sc-guide {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid #cbd5e1;
+    background: #f8fafc;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-sc-audio:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    transform: scale(1.08);
+}
+
+.btn-sc-guide:hover {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    transform: scale(1.08);
+}
+
+.sd-sc-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.sd-sc-desc {
+    font-size: 0.88rem;
+    color: #64748b;
+    line-height: 1.45;
+    margin-bottom: 14px;
+}
+
+.sd-sc-words-wrap {
+    margin-bottom: 18px;
+}
+
+.sd-sc-words-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+.sd-sc-words-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sd-sc-word-chip {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    color: #334155;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+}
+
+.sd-sc-word-chip strong {
+    color: #0f172a;
+}
+
+.sd-sc-word-chip:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+    transform: translateY(-1px);
+}
+
+.btn-sc-open-mindmap {
+    width: 100%;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+}
+
+.btn-sc-open-mindmap:hover {
+    background: linear-gradient(135deg, #0369a1, #075985);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+}
+
+/* --- Level 3: Mindmap Top Navigation --- */
+.sd-mindmap-top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.sd-sound-step-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    padding: 4px 10px;
+    border-radius: 14px;
+    border: 1.5px solid #cbd5e1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-step-arrow {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-step-arrow:hover:not(:disabled) {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+}
+
+.btn-step-arrow:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.step-curr-badge {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #0f172a;
+    padding: 2px 10px;
+}
+
+/* =========================================================
+   3. BANNER QUY TẮC
+   ========================================================= */
+.sd-rule-banner {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px 24px;
+    margin-top: 18px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.sd-rule-banner-left {
+    flex: 1;
+    min-width: 300px;
+}
+
+.sd-rule-badge {
+    display: inline-block;
+    background: #fee2e2;
+    color: #dc2626;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 3px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+}
+
+.sd-rule-headline {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0 0 4px 0;
+}
+
+.sd-rule-desc {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.sd-rule-banner-right {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-sd-action {
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-sd-autoplay {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.btn-sd-autoplay:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
+}
+
+.btn-sd-center-guide {
+    background: #f8fafc;
+    color: #0284c7;
+    border: 2px solid #bae6fd;
+}
+.btn-sd-center-guide:hover {
+    background: #e0f2fe;
+    transform: translateY(-2px);
+}
+
+.btn-sd-toggle-view {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+.btn-sd-toggle-view:hover {
+    background: #e2e8f0;
+}
+
+/* =========================================================
+   4. BÀI HỌC QUY LUẬT ĐÁNH VẦN CHUẨN SÁCH (BOOK LESSON VIEW)
+   ========================================================= */
+.sd-book-lesson-container {
+    width: 100%;
+    margin: 16px 0 40px 0;
+}
+
+/* ─── 1. HỘP CÔNG THỨC QUY LUẬT (BOOK FORMULA CARD) ─── */
+.sd-book-formula-card {
+    background: linear-gradient(180deg, #ffffff 0%, #fffbfb 100%);
+    border: 2.5px solid #fee2e2;
+    border-radius: 20px;
+    padding: 24px 30px;
+    box-shadow: 0 10px 25px rgba(220, 38, 38, 0.06);
+}
+
+.sd-bfc-top {
+    margin-bottom: 12px;
+}
+
+.sd-book-rule-title {
+    font-size: 1.55rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 8px 0 0 0;
+    line-height: 1.35;
+}
+
+/* Hộp công thức: [Mặt chữ] ➔ /Phiên âm/ */
+.sd-formula-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    background: #fff5f5;
+    border: 2px dashed #fca5a5;
+    border-radius: 16px;
+    padding: 16px 24px;
+    margin: 18px 0;
+    flex-wrap: wrap;
+}
+
+.sd-formula-col {
+    text-align: center;
+}
+
+.sd-formula-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #991b1b;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.sd-formula-char {
+    font-size: 1.85rem;
+    font-weight: 900;
+    color: #dc2626;
+    letter-spacing: 0.5px;
+}
+
+.sd-formula-col.arrow {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #ef4444;
+    line-height: 1;
+}
+
+.sd-formula-ipa {
+    font-size: 1.85rem;
+    font-weight: 900;
+    color: #0284c7;
+    font-family: 'Consolas', monospace;
+}
+
+.btn-formula-audio {
+    background: #ef4444;
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+
+.btn-formula-audio:hover {
+    background: #b91c1c;
+    transform: scale(1.1);
+}
+
+.sd-book-rule-desc {
+    font-size: 1.05rem;
+    color: #334155;
+    line-height: 1.6;
+    background: #f8fafc;
+    border-left: 4px solid #ef4444;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+}
+
+.sd-book-actions-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-sd-faq {
+    background: #f8fafc;
+    color: #4338ca;
+    border: 1.5px solid #c7d2fe;
+}
+
+.btn-sd-faq:hover {
+    background: #e0e7ff;
+    transform: translateY(-2px);
+}
+
+/* ─── 2. BẢNG DANH SÁCH TỪ VÍ DỤ TIÊU BIỂU ─── */
+.sd-book-examples-section {
+    margin-top: 24px;
+}
+
+.sd-bes-title {
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0;
+}
+
+.sd-bes-sub {
+    font-size: 0.92rem;
+    color: #64748b;
+    margin: 4px 0 0 0;
+}
+
+.btn-refresh-8words {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: #dc2626;
+    border: 1.5px solid #fca5a5;
+    border-radius: 12px;
+    padding: 8px 18px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+}
+
+.btn-refresh-8words:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: #ffffff;
+    border-color: #b91c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+}
+
+.btn-refresh-8words:active {
+    transform: translateY(0);
+}
+
+.sd-book-words-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.sd-book-word-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sd-book-word-card:hover {
+    border-color: #f87171;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(220, 38, 38, 0.1);
+}
+
+.sd-book-word-card.playing {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3), 0 8px 20px rgba(16, 185, 129, 0.2);
+    transform: translateY(-2px);
+}
+
+.sd-bwc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.sd-bwc-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.sd-bwc-word {
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.sd-bwc-word .hl-red, .hl-red {
+    color: #dc2626 !important;
+    font-weight: 900;
+    text-decoration: underline;
+    text-decoration-color: #ef4444;
+    text-underline-offset: 3px;
+}
+
+.sd-bwc-ipa {
+    font-family: 'Consolas', 'Lucida Console', monospace;
+    font-size: 1.05rem;
+    color: #475569;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.sd-bwc-ipa .hl-red {
+    color: #dc2626 !important;
+    font-weight: 800;
+}
+
+.sd-bwc-meaning {
+    font-size: 0.95rem;
+    color: #1e293b;
+    font-weight: 600;
+    margin-bottom: 14px;
+    line-height: 1.35;
+}
+
+.sd-bwc-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-bwc-audio {
+    flex: 1;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.btn-bwc-audio:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+.btn-bwc-spell {
+    flex: 1.2;
+    background: #f0fdf4;
+    border: 1.5px solid #86efac;
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #15803d;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.btn-bwc-spell:hover {
+    background: #15803d;
+    color: #ffffff;
+    border-color: #15803d;
+    box-shadow: 0 3px 10px rgba(21, 128, 61, 0.25);
+}
+
+/* ─── 3. THANH CHUYỂN NHANH CÁC ÂM TRONG NHÓM ─── */
+.sd-quick-sounds-box {
+    background: #ffffff;
+}
+
+.sd-quick-sounds-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sd-quick-sound-chip {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.sd-quick-sound-chip:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+    transform: translateY(-1px);
+}
+
+.sd-quick-sound-chip.active {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff;
+}
+
+.sd-card-icon {
+    font-size: 1.8rem;
+    margin-bottom: 2px;
+    line-height: 1;
+}
+
+.sd-card-word {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+}
+
+/* Phần chữ cái quy tắc được bôi đỏ đậm y như ảnh */
+.sd-card-word .hl-red, .hl-red {
+    color: #dc2626 !important;
+    font-weight: 900;
+    text-decoration: underline;
+    text-decoration-color: #ef4444;
+    text-underline-offset: 2px;
+}
+
+.sd-card-ipa {
+    font-family: 'Consolas', 'Lucida Console', monospace;
+    font-size: 0.95rem;
+    color: #64748b;
+    margin: 2px 0;
+    font-weight: 600;
+}
+
+.sd-card-ipa .hl-red {
+    color: #dc2626 !important;
+    font-weight: 800;
+}
+
+.sd-card-meaning {
+    font-size: 0.85rem;
+    color: #475569;
+    font-weight: 600;
+    margin-top: 2px;
+    line-height: 1.3;
+}
+
+/* Nút bấm hành động nhỏ trên thẻ từ */
+.sd-card-actions {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.btn-card-audio, .btn-card-guide {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-card-audio:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+.btn-card-guide:hover {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+}
+
+/* ─── CHẾ ĐỘ HIỂN THỊ LƯỚI THẺ (GRID VIEW CHO MOBILE / TÙY CHỌN) ─── */
+.sd-mindmap-board.view-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: auto;
+    padding: 24px 16px;
+}
+
+.sd-mindmap-board.view-grid .sd-mindmap-svg {
+    display: none;
+}
+
+.sd-mindmap-board.view-grid .sd-center-hub {
+    margin-bottom: 28px;
+}
+
+.sd-mindmap-board.view-grid .sd-satellites-wrapper {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 1000px;
+}
+
+.sd-mindmap-board.view-grid .sd-word-card {
+    position: static !important;
+    transform: none !important;
+    max-width: 100%;
+}
+
+.sd-mindmap-board.view-grid .sd-word-card:hover {
+    transform: translateY(-4px) !important;
+}
+
+/* Loading Spinner */
+.sd-loading-box {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.sd-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #0284c7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* =========================================================
+   5. MODAL HƯỚNG DẪN ÂM TRUNG TÂM
+   ========================================================= */
+.modal-sd-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 16px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-sd-dialog {
+    background: #ffffff;
+    border-radius: 20px;
+    max-width: 580px;
+    width: 100%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.modal-sd-header {
+    background: #f8fafc;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-sd-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.modal-sd-close {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.modal-sd-close:hover {
+    color: #0f172a;
+}
+
+.modal-sd-body {
+    padding: 20px;
+}
+
+.sd-modal-rule-box {
+    display: flex;
+    gap: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.sd-modal-phoneme-hero {
+    text-align: center;
+    border-right: 1px solid #cbd5e1;
+    padding-right: 16px;
+    min-width: 110px;
+}
+
+.sd-modal-big-symbol {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--sd-primary-red);
+    font-family: 'Consolas', monospace;
+    margin-bottom: 8px;
+}
+
+.sd-modal-rule-detail {
+    flex: 1;
+}
+
+.sd-modal-words-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sd-modal-chip-word {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.sd-modal-chip-word:hover {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #dc2626;
+}
+
+.modal-sd-footer {
+    background: #f8fafc;
+    padding: 12px 20px;
+    border-top: 1px solid #e2e8f0;
+    text-align: right;
+}
+
+/* =========================================================
+   6. RESPONSIVE CHO MOBILE & TABLET
+   ========================================================= */
+@media (max-width: 768px) {
+    .sd-header-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    .sd-header-left {
+        justify-content: center;
+        width: 100%;
+    }
+    .sd-rule-banner {
+        flex-direction: column;
+        text-align: center;
+    }
+    .sd-rule-banner-right {
+        justify-content: center;
+        width: 100%;
+    }
+    .sd-mindmap-board {
+        min-height: auto;
+        padding: 20px 10px;
+    }
+}

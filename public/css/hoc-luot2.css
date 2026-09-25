@@ -1,0 +1,236 @@
+/* =========================================================
+   THÔNG TIN TỪ
+   ========================================================= */
+
+.tu-hover {
+
+    position: relative;
+
+    cursor: pointer;
+
+}
+
+
+.thong-tin-tu {
+
+    display: none;
+
+    position: absolute;
+
+    background: white;
+
+    border: 1px solid #ccc;
+
+    padding: 10px;
+
+    z-index: 10;
+
+    width: 250px;
+
+}
+
+
+.tu-hover:hover .thong-tin-tu {
+
+    display: block;
+
+}
+
+
+/* =========================================================
+   KẾT QUẢ & HIỂN THỊ KÝ TỰ ĐÚNG / SAI (CHARACTER DIFF)
+   ========================================================= */
+
+.input-dung {
+    background-color: #e8f5e9 !important;
+    border: 2px solid #4caf50 !important;
+    color: #1b5e20 !important;
+    font-weight: 600;
+}
+
+.input-sai {
+    background-color: #ffebee !important;
+    border: 2px solid #ef5350 !important;
+    color: #b71c1c !important;
+    font-weight: 600;
+}
+
+.ket-qua-box {
+    margin-top: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    animation: fadeInKq 0.25s ease-out;
+}
+
+@keyframes fadeInKq {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.kq-dung {
+    background-color: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    color: #2e7d32;
+}
+
+.kq-sai {
+    background-color: #ffebee;
+    border: 1px solid #ffcdd2;
+    color: #c62828;
+}
+
+.char-diff-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: #fff;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+
+.char-diff {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 4px;
+    min-width: 14px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.char-correct {
+    color: #1b5e20;
+    background-color: #c8e6c9;
+    border-bottom: 2px solid #2e7d32;
+}
+
+.char-wrong {
+    color: #b71c1c;
+    background-color: #ffcdd2;
+    text-decoration: underline wavy #d32f2f;
+    border-bottom: 2px solid #c62828;
+}
+
+.dap-an-chuan-badge {
+    display: inline-block;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0d47a1;
+    background-color: #e3f2fd;
+    padding: 2px 10px;
+    border-radius: 6px;
+    border: 1px solid #90caf9;
+    margin-left: 4px;
+}
+
+.btn-mini-audio {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 2px 6px;
+    vertical-align: middle;
+    border-radius: 50%;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn-mini-audio:hover {
+    transform: scale(1.2);
+    background-color: rgba(0,0,0,0.05);
+}
+
+
+/* =========================================================
+   CỘT NÚT CHẤM
+   MÁY TÍNH: ẨN HOÀN TOÀN
+   ========================================================= */
+
+.cot-cham {
+
+    display: none !important;
+
+}
+
+
+/* =========================================================
+   ĐIỆN THOẠI
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .cot-cham {
+
+        display: table-cell !important;
+
+        width: 55px;
+
+        text-align: center;
+
+        vertical-align: middle;
+
+    }
+
+
+    .nut-cham {
+
+        width: 45px;
+
+        height: 40px;
+
+        font-size: 20px;
+
+        padding: 0;
+
+    }
+
+
+    .container {
+
+        margin-top: 20px !important;
+
+    }
+
+
+    h2 {
+
+        font-size: 24px;
+
+    }
+
+
+    h4 {
+
+        font-size: 18px;
+
+    }
+
+}
+
+/* =========================================================
+   HÀNG ĐANG HỌC (AUTO-CENTER & HIGHLIGHT)
+   ========================================================= */
+html {
+    scroll-behavior: smooth;
+}
+
+tr.hang-dang-hoc {
+    background-color: #f0fdf4 !important;
+    box-shadow: inset 0 0 0 2px #10b981, 0 4px 15px rgba(16, 185, 129, 0.15) !important;
+    position: relative;
+    z-index: 2;
+    transition: all 0.25s ease;
+}
+
+.cau-tra-loi:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.25) !important;
+}

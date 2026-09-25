@@ -1,0 +1,427 @@
+/* =========================================================
+   BẮT ĐẦU HỌC
+   Desktop + Mobile
+   ========================================================= */
+
+
+/* =========================================================
+   1. BODY
+   ========================================================= */
+
+body {
+    background: #f4f7fb;
+    color: #212529;
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+}
+
+
+/* =========================================================
+   2. KHUNG CHÍNH
+   ========================================================= */
+
+.container {
+    max-width: 1050px;
+}
+
+
+/* =========================================================
+   3. TIÊU ĐỀ
+   ========================================================= */
+
+h2 {
+    margin-bottom: 0;
+
+    font-size: 30px;
+    font-weight: 700;
+
+    color: #198754;
+    letter-spacing: 0.5px;
+}
+
+
+/* =========================================================
+   4. CARD
+   ========================================================= */
+
+.card {
+    border: none;
+    border-radius: 18px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 5px 25px rgba(0, 0, 0, 0.08);
+
+    overflow: hidden;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+
+/* =========================================================
+   5. THÔNG TIN KIỂU HỌC
+   ========================================================= */
+
+h5 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 12px;
+
+    font-size: 17px;
+    font-weight: 500;
+
+    color: #495057;
+}
+
+h5 span {
+    padding: 5px 12px;
+
+    border-radius: 8px;
+
+    background: #e8f5ee;
+    color: #198754;
+
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   6. TIÊU ĐỀ "CÁC TỪ SẼ HỌC"
+   ========================================================= */
+
+h4 {
+    margin-bottom: 18px;
+
+    font-size: 21px;
+    font-weight: 700;
+
+    color: #343a40;
+}
+
+
+/* =========================================================
+   7. BẢNG
+   ========================================================= */
+
+.table {
+    margin-bottom: 25px;
+
+    vertical-align: middle;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.table thead th {
+    padding: 13px 12px;
+
+    background: #198754;
+    color: #ffffff;
+
+    border-color: #198754;
+
+    text-align: center;
+    vertical-align: middle;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 12px;
+
+    vertical-align: middle;
+
+    font-size: 15px;
+}
+
+.table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.table tbody tr:hover {
+    background: #f0fdf4;
+}
+
+
+/* =========================================================
+   8. CỘT ENGLISH
+   ========================================================= */
+
+.table tbody td:first-child {
+    font-weight: 600;
+    color: #212529;
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   9. CỘT PHIÊN ÂM
+   ========================================================= */
+
+.table tbody td:nth-child(3) {
+    color: #6c757d;
+
+    font-family:
+        "Courier New",
+        monospace;
+}
+
+
+/* =========================================================
+   10. CỘT ĐỌC
+   ========================================================= */
+
+.table thead th:last-child,
+.table tbody td:last-child {
+    text-align: center;
+}
+
+
+/* =========================================================
+   11. NÚT 🔊
+   ========================================================= */
+
+.table button[type="button"] {
+    width: 42px;
+    height: 38px;
+
+    padding: 0;
+
+    border: none;
+    border-radius: 9px;
+
+    background: #e8f5ee;
+    color: #198754;
+
+    font-size: 18px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.table button[type="button"]:hover {
+    background: #198754;
+    color: #ffffff;
+
+    transform: scale(1.06);
+}
+
+.table button[type="button"]:active {
+    transform: scale(0.94);
+}
+
+
+/* =========================================================
+   12. FORM BẮT ĐẦU HỌC
+   ========================================================= */
+
+.card-body > form {
+    margin-top: 10px;
+}
+
+
+/* =========================================================
+   13. NÚT BẮT ĐẦU HỌC
+   ========================================================= */
+
+.btn-success {
+    min-width: 180px;
+    min-height: 48px;
+
+    border-radius: 10px;
+
+    font-size: 16px;
+    font-weight: 600;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 6px 15px rgba(25, 135, 84, 0.25);
+}
+
+.btn-success:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   14. MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+    body {
+        background: #f4f7fb;
+    }
+
+    .container {
+        width: 100%;
+
+        padding-left: 12px;
+        padding-right: 12px;
+
+        margin-top: 25px !important;
+    }
+
+
+    /* Tiêu đề */
+
+    h2 {
+        font-size: 24px;
+    }
+
+
+    /* Card */
+
+    .card {
+        margin-top: 20px !important;
+
+        border-radius: 14px;
+    }
+
+    .card-body {
+        padding: 18px 14px;
+    }
+
+
+    /* Thông tin */
+
+    h5 {
+        display: block;
+
+        font-size: 15px;
+
+        line-height: 1.8;
+    }
+
+    h5 span {
+        display: inline-block;
+
+        margin-left: 3px;
+
+        font-size: 14px;
+    }
+
+
+    /* Tiêu đề bảng */
+
+    h4 {
+        margin-top: 25px !important;
+
+        font-size: 19px;
+    }
+
+
+    /* Bảng */
+
+    .table {
+        min-width: 650px;
+
+        font-size: 14px;
+    }
+
+    .table thead th {
+        padding: 10px 8px;
+
+        font-size: 14px;
+    }
+
+    .table tbody td {
+        padding: 10px 8px;
+
+        font-size: 14px;
+    }
+
+    .table tbody td:first-child {
+        font-size: 15px;
+    }
+
+
+    /* Cho phép bảng cuộn ngang */
+
+    .table {
+        display: block;
+
+        overflow-x: auto;
+
+        white-space: nowrap;
+    }
+
+
+    /* Nút đọc */
+
+    .table button[type="button"] {
+        width: 40px;
+        height: 36px;
+    }
+
+
+    /* Nút bắt đầu */
+
+    .card-body > form {
+        width: 100%;
+    }
+
+    .btn-success {
+        width: 100%;
+
+        min-height: 50px;
+
+        font-size: 16px;
+    }
+}
+
+
+/* =========================================================
+   15. ĐIỆN THOẠI RẤT NHỎ
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .card-body {
+        padding: 15px 10px;
+    }
+
+    h2 {
+        font-size: 21px;
+    }
+
+    h4 {
+        font-size: 18px;
+    }
+
+    .table {
+        min-width: 620px;
+    }
+}

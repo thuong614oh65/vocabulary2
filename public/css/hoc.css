@@ -1,0 +1,475 @@
+/* =========================================================
+   HỌC TỪ VỰNG - CSS
+   Desktop + Mobile
+   ========================================================= */
+
+
+/* =========================================================
+   1. BODY
+   ========================================================= */
+
+body {
+    background: #f4f7fb;
+    color: #212529;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+}
+
+
+/* =========================================================
+   2. KHUNG CHÍNH
+   ========================================================= */
+
+.container {
+    max-width: 1100px;
+}
+
+
+/* =========================================================
+   3. TIÊU ĐỀ
+   ========================================================= */
+
+h2 {
+    font-weight: 700;
+    color: #198754;
+    letter-spacing: 0.5px;
+}
+
+
+/* =========================================================
+   4. FORM CHỌN KIỂU HỌC
+   ========================================================= */
+
+form {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+
+/* =========================================================
+   5. RADIO
+   ========================================================= */
+
+.form-check {
+    padding: 13px 18px 13px 44px !important;
+    margin-bottom: 9px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fafafa;
+    transition: all 0.2s ease;
+    cursor: pointer !important;
+    user-select: none;
+    position: relative;
+    width: 100%;
+}
+
+.form-check:hover {
+    background: #f0fdf4 !important;
+    border-color: #86efac !important;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.form-check:active {
+    transform: translateY(0);
+}
+
+.form-check.active-check,
+.form-check:has(.form-check-input:checked) {
+    background: #f0fdf4 !important;
+    border-color: #198754 !important;
+    box-shadow: 0 0 0 1px #198754, 0 4px 12px rgba(25, 135, 84, 0.14) !important;
+}
+
+.form-check.active-check .form-check-label,
+.form-check:has(.form-check-input:checked) .form-check-label {
+    color: #15803d !important;
+    font-weight: 700 !important;
+}
+
+.form-check-input {
+    cursor: pointer !important;
+    width: 18px;
+    height: 18px;
+    margin-top: 0.15rem;
+    margin-left: -28px;
+    accent-color: #198754;
+}
+
+/* Đảm bảo click vào bất cứ phần nào trên thanh cũng truyền vào .form-check */
+.form-check-label {
+    cursor: pointer !important;
+    font-weight: 500;
+    transition: color 0.15s ease;
+    user-select: none;
+    pointer-events: none; /* Click xuyên qua vào thanh */
+}
+
+/* Các ô nhập số bên trong thanh vẫn nhập liệu tự nhiên */
+.form-check input[type="number"],
+.form-check input[type="text"] {
+    pointer-events: auto !important;
+    cursor: text !important;
+}
+
+.form-check input[type="number"]:disabled {
+    pointer-events: none !important;
+    cursor: pointer !important;
+}
+
+.chip-chude {
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+}
+
+.chip-chude:hover {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   6. SELECT BỘ HỌC
+   ========================================================= */
+
+#boHoc {
+    max-width: 450px;
+    min-height: 45px;
+    border-radius: 10px;
+    border: 1px solid #ced4da;
+    cursor: pointer;
+}
+
+#boHoc:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15);
+}
+
+
+/* =========================================================
+   7. CÁC NÚT HÀNH ĐỘNG
+   ========================================================= */
+
+.btn-action-group .btn {
+    min-height: 44px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-action-group .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================================================
+   8. ĐƯỜNG KẺ
+   ========================================================= */
+
+hr {
+    margin: 30px 0;
+    border-color: #dee2e6;
+}
+
+
+/* =========================================================
+   9. KHU VỰC BẢNG
+   ========================================================= */
+
+#bangTheoBo,
+#bangTatCa {
+    margin-top: 20px;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 15px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+
+    overflow-x: auto;
+}
+
+
+/* =========================================================
+   10. TABLE
+   ========================================================= */
+
+.table {
+    margin-bottom: 0;
+    vertical-align: middle;
+    min-width: 750px;
+}
+
+.table thead th {
+    background: #198754;
+    color: #ffffff;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 13px 10px;
+}
+
+.table tbody td {
+    padding: 12px 10px;
+    vertical-align: middle;
+}
+
+.table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.table tbody tr:hover {
+    background: #f0fdf4;
+}
+
+
+/* =========================================================
+   11. CỘT BỘ
+   ========================================================= */
+
+.table tbody td:first-child {
+    font-weight: 600;
+    color: #198754;
+    background: #f8fffa;
+}
+
+
+/* =========================================================
+   12. CỘT ENGLISH
+   ========================================================= */
+
+.table tbody td:nth-child(2) {
+    font-weight: 600;
+    color: #212529;
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   13. PHIÊN ÂM
+   ========================================================= */
+
+.table tbody td:nth-child(4) {
+    color: #6c757d;
+    font-family: "Courier New", monospace;
+}
+
+
+/* =========================================================
+   14. NÚT ĐỌC 🔊
+   ========================================================= */
+
+.table button[type="button"] {
+    width: 42px;
+    height: 38px;
+
+    border: none;
+    border-radius: 9px;
+
+    background: #e8f5ee;
+    color: #198754;
+
+    font-size: 18px;
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.table button[type="button"]:hover {
+    background: #198754;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.table button[type="button"]:active {
+    transform: scale(0.95);
+}
+
+.table button.btn-chon-ca-bo {
+    width: auto !important;
+    height: auto !important;
+    padding: 4px 10px !important;
+    font-size: 12.5px !important;
+    font-weight: 600;
+    border-radius: 7px;
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+    white-space: nowrap;
+}
+
+.table button.btn-chon-ca-bo:hover {
+    background: #198754;
+    color: #ffffff;
+    border-color: #198754;
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   15. CHECKBOX
+   ========================================================= */
+
+input[type="checkbox"] {
+    width: 19px;
+    height: 19px;
+    cursor: pointer;
+    accent-color: #198754;
+}
+
+
+/* =========================================================
+   16. CĂN GIỮA CÁC CỘT
+   ========================================================= */
+
+.table thead th:nth-child(4),
+.table thead th:nth-child(5),
+.table thead th:nth-child(6),
+
+.table tbody td:nth-child(4),
+.table tbody td:nth-child(5),
+.table tbody td:nth-child(6) {
+    text-align: center;
+}
+
+
+/* =========================================================
+   17. MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+    body {
+        background: #f4f7fb;
+    }
+
+    .container {
+        width: 100%;
+        padding-left: 12px;
+        padding-right: 12px;
+        margin-top: 25px !important;
+    }
+
+    h2 {
+        font-size: 24px;
+        margin-bottom: 20px !important;
+    }
+
+    form {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .form-check {
+        padding: 12px 10px 12px 38px;
+        margin-bottom: 8px;
+    }
+
+    .form-check-label {
+        font-size: 15px;
+    }
+
+    #boHoc {
+        width: 100%;
+        max-width: none;
+        min-height: 45px;
+        font-size: 15px;
+    }
+
+    .btn-action-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px !important;
+    }
+
+    .btn-action-group .btn {
+        flex: 1 1 calc(50% - 8px);
+        min-height: 45px;
+        font-size: 14px;
+    }
+
+    .btn-action-group button[type="submit"] {
+        flex: 1 1 100%;
+        min-height: 48px;
+        font-size: 16px;
+    }
+
+    hr {
+        margin: 25px 0;
+    }
+
+    #bangTheoBo,
+    #bangTatCa {
+        padding: 8px;
+        border-radius: 10px;
+        margin-left: -4px;
+        margin-right: -4px;
+    }
+
+    .table {
+        min-width: 700px;
+        font-size: 14px;
+    }
+
+    .table thead th {
+        padding: 10px 8px;
+        font-size: 14px;
+    }
+
+    .table tbody td {
+        padding: 10px 8px;
+    }
+
+    .table tbody td:nth-child(2) {
+        font-size: 15px;
+    }
+
+    .table button[type="button"] {
+        width: 40px;
+        height: 36px;
+    }
+}
+
+
+/* =========================================================
+   18. ĐIỆN THOẠI RẤT NHỎ
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    form {
+        padding: 12px;
+    }
+
+    h2 {
+        font-size: 21px;
+    }
+
+    .form-check {
+        padding-left: 36px;
+    }
+
+    .table {
+        min-width: 680px;
+    }
+}

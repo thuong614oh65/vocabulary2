@@ -1,0 +1,360 @@
+body {
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+
+    background: #f4f7fb;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    min-height: 100vh;
+
+    margin: 0;
+
+    padding: 20px;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   2. KHUNG TÀI KHOẢN
+   ========================================================= */
+
+.container {
+    width: 100%;
+    max-width: 420px;
+
+    background: #ffffff;
+
+    padding: 32px;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.09);
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   3. TIÊU ĐỀ
+   ========================================================= */
+
+h2 {
+    text-align: center;
+
+    margin-top: 0;
+    margin-bottom: 28px;
+
+    color: #198754;
+
+    font-size: 28px;
+    font-weight: 700;
+
+    letter-spacing: 0.3px;
+}
+
+
+/* =========================================================
+   4. FORM GROUP
+   ========================================================= */
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+
+/* =========================================================
+   5. LABEL
+   ========================================================= */
+
+label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #343a40;
+
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   6. INPUT
+   ========================================================= */
+
+input {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding: 12px 13px;
+
+    border: 1px solid #ced4da;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    color: #212529;
+
+    font-size: 15px;
+
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+
+/* Khi click vào input */
+
+input:focus {
+    border-color: #198754;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 3px rgba(25, 135, 84, 0.12);
+}
+
+
+/* Placeholder */
+
+input::placeholder {
+    color: #adb5bd;
+}
+
+
+/* =========================================================
+   7. NÚT
+   ========================================================= */
+
+button {
+    width: 100%;
+
+    min-height: 48px;
+
+    padding: 11px 15px;
+
+    margin-top: 4px;
+
+    background: #198754;
+
+    color: #ffffff;
+
+    border: none;
+
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    font-size: 16px;
+    font-weight: 600;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+/* Hover */
+
+button:hover {
+    background: #157347;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 5px 14px rgba(25, 135, 84, 0.25);
+}
+
+
+/* Khi bấm */
+
+button:active {
+    transform: translateY(0);
+
+    box-shadow: none;
+}
+
+
+/* =========================================================
+   8. THÔNG BÁO LỖI
+   ========================================================= */
+
+.loi {
+    color: #dc3545;
+
+    background: #fff1f2;
+
+    border: 1px solid #fecdd3;
+
+    border-radius: 8px;
+
+    padding: 10px 12px;
+
+    margin-bottom: 18px;
+
+    text-align: center;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   9. ĐĂNG NHẬP / ĐĂNG KÝ
+   ========================================================= */
+
+.login,
+.register {
+    text-align: center;
+
+    margin-top: 22px;
+
+    color: #6c757d;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   10. LINK
+   ========================================================= */
+
+.login a,
+.register a {
+    color: #198754;
+
+    text-decoration: none;
+
+    font-weight: 600;
+
+    margin-left: 3px;
+
+    transition: color 0.2s ease;
+}
+
+
+.login a:hover,
+.register a:hover {
+    color: #146c43;
+
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   11. MOBILE
+   ========================================================= */
+
+@media (max-width: 576px) {
+
+    body {
+        padding: 15px;
+    }
+
+
+    .container {
+        max-width: 100%;
+
+        padding: 25px 20px;
+
+        border-radius: 15px;
+    }
+
+
+    h2 {
+        font-size: 24px;
+
+        margin-bottom: 23px;
+    }
+
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+
+    label {
+        font-size: 14px;
+    }
+
+
+    input {
+        min-height: 46px;
+
+        padding: 11px 12px;
+
+        font-size: 15px;
+    }
+
+
+    button {
+        min-height: 48px;
+
+        font-size: 16px;
+    }
+
+
+    .login,
+    .register {
+        margin-top: 20px;
+
+        font-size: 14px;
+
+        line-height: 1.6;
+    }
+}
+
+
+/* =========================================================
+   12. ĐIỆN THOẠI RẤT NHỎ
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+    body {
+        padding: 10px;
+    }
+
+
+    .container {
+        padding: 22px 16px;
+
+        border-radius: 13px;
+    }
+
+
+    h2 {
+        font-size: 22px;
+
+        margin-bottom: 20px;
+    }
+
+
+    input {
+        min-height: 44px;
+
+        font-size: 14px;
+    }
+
+
+    button {
+        min-height: 46px;
+
+        font-size: 15px;
+    }
+}
