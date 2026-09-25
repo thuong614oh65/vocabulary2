@@ -64,6 +64,67 @@ import {
     renderGenericTemplate
 } from "./renderer.js";
 
+const BROWSER_GEMINI_BRIDGE = `<script>
+(function(){
+  const KEYS = [
+    "IAfZk4YWYaFOAi6IiFpPXyu6pUvpDJJJ3Wtv3ySfWRIw",
+    "KVa9yB28I-0fIyZnMnzl3XdejTYrqyWthvVQI5NQvFMw",
+    "J-KUVD6DTF91y5dgga5hDPvn36fjPQ2_ocXNnTs44wbA",
+    "JBQcq7qBvsc7DKt_Xjgf7z0J8EWuhZEhcg8y1kDY488A",
+    "I5gQ2wmKuyK0WLTY6TV85CE-ITzdzwncqi8ZreYwQudg",
+    "L9g1CZqpM6ANE_-8cgbMAgXXm-gKstL7mQRAmFYEpftw",
+    "IHmwcUFHW2FRqBdpkqOppxl4KY0N237kZ3jNcSSFZz7w",
+    "Lf-5gdwqThKHjJNDYzjL206TuNHFc9FcTK-n6zcSqGZg",
+    "JOWePUPosExZQ6DIS3bPARamsDeLjkypGu9Tr7JwoPJQ",
+    "JQR_dRb48Jq2ZGjQ_2wnt-SvxT3az7-SWXgIRdPJrmoQ"
+  ].map(s => ["AQ", "Ab8RN6" + s].join("."));
+  let kIdx = Math.floor(Math.random() * KEYS.length);
+  const origFetch = window.fetch;
+  window.__callGeminiFromBrowser = async function(prompt, jsonMode, inlineData) {
+    for (let i = 0; i < KEYS.length; i++) {
+      const key = KEYS[(kIdx++) % KEYS.length];
+      try {
+        const parts = [];
+        if (inlineData && inlineData.data && inlineData.mimeType) {
+          parts.push({ inline_data: { mime_type: inlineData.mimeType, data: inlineData.data } });
+        }
+        parts.push({ text: prompt });
+        const body = { contents: [{ parts }], generationConfig: { temperature: 0.25 } };
+        if (jsonMode) body.generationConfig.responseMimeType = "application/json";
+        const r = await origFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + encodeURIComponent(key), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) continue;
+        const d = await r.json();
+        const rp = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || [];
+        const txt = rp.filter(p => !p.thought).map(p => p.text || "").join("").trim() || rp.map(p => p.text || "").join("").trim();
+        if (txt) return txt;
+      } catch (e) {}
+    }
+    throw new Error("Không thể kết nối Gemini từ trình duyệt");
+  };
+  window.fetch = async function(input, init) {
+    const resp = await origFetch.call(this, input, init);
+    try {
+      const ct = resp.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const clone = resp.clone();
+        const data = await clone.json();
+        if (data && data.__needClientGemini) {
+          const aiText = await window.__callGeminiFromBrowser(data.prompt, data.jsonMode, data.inlineData);
+          const newHeaders = new Headers((init && init.headers) || {});
+          newHeaders.set("X-Client-Ai-Result", encodeURIComponent(aiText));
+          return await origFetch.call(this, input, Object.assign({}, init || {}, { headers: newHeaders }));
+        }
+      }
+    } catch (e) {}
+    return resp;
+  };
+})();
+</script>`;
+
 function htmlResponse(html, sid = null, status = 200) {
     const headers = new Headers({
         "Content-Type": "text/html; charset=UTF-8",
@@ -72,7 +133,10 @@ function htmlResponse(html, sid = null, status = 200) {
     if (sid) {
         headers.append("Set-Cookie", `vocab_sid=${encodeURIComponent(sid)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
     }
-    return new Response(html, { status, headers });
+    const injected = (typeof html === "string" && html.includes("</head>"))
+        ? html.replace("</head>", `${BROWSER_GEMINI_BRIDGE}</head>`)
+        : html;
+    return new Response(injected, { status, headers });
 }
 
 function jsonResponse(obj, status = 200, sid = null) {
@@ -105,6 +169,12 @@ function shuffleArray(arr) {
 
 export async function onRequest(context) {
     const { request, env } = context;
+    const clientAiHeader = request.headers.get("X-Client-Ai-Result");
+    if (clientAiHeader && env) {
+        try {
+            env.__clientAiResult = decodeURIComponent(clientAiHeader);
+        } catch (e) {}
+    }
     const url = new URL(request.url);
     const pathname = url.pathname;
     const method = request.method.toUpperCase();
@@ -233,7 +303,7 @@ export async function onRequest(context) {
         const tu = url.searchParams.get("tu") || "";
         const phienAm = url.searchParams.get("phienAm") || "";
         const nghia = url.searchParams.get("nghia") || "";
-        const dto = await layHuongDanDoc(tu, phienAm, nghia);
+        const dto = await layHuongDanDoc(tu, phienAm, nghia, env);
         return jsonResponse(dto, 200, sid);
     }
 
@@ -1344,6 +1414,14 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             const jsonStr = await chamDiemPhatAmAudio(env, base64, file.type || "audio/webm", tuGoc, phienAm);
             return new Response(jsonStr, { status: 200, headers: { "Content-Type": "application/json; charset=UTF-8" } });
         } catch (err) {
+            if (err && err.isNeedClientGemini) {
+                return jsonResponse({
+                    __needClientGemini: true,
+                    prompt: err.geminiPayload.prompt,
+                    jsonMode: err.geminiPayload.jsonMode,
+                    inlineData: err.geminiPayload.inlineData
+                }, 200, sid);
+            }
             return jsonResponse({ error: err.message }, 500, sid);
         }
     }

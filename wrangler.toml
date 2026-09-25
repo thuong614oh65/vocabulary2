@@ -8,3 +8,7 @@ binding = "ASSETS"
 
 [vars]
 DATABASE_URL = "postgresql://neondb_owner:npg_1tQqN2VkGMsH@ep-little-thunder-azqmb031.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+
+[placement]
+mode = "smart"
+

@@ -18,21 +18,69 @@ const DEFAULT_GEMINI_KEYS = [
 ].map(suffix => ["AQ", "Ab8RN6" + suffix].join("."));
 
 const MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.6-flash",
-    "gemini-3.8-flash"
+    "gemini-3.5-flash-lite"
 ];
 
 let keyCursor = 0;
 
+async function callOpenAiFallback(prompt, jsonMode = false, inlineData = null) {
+    const userContent = [];
+    if (inlineData && inlineData.data && inlineData.mimeType && inlineData.mimeType.startsWith("image/")) {
+        userContent.push({
+            type: "image_url",
+            image_url: { url: `data:${inlineData.mimeType};base64,${inlineData.data}` }
+        });
+    }
+    userContent.push({ type: "text", text: prompt });
+
+    const messages = [
+        {
+            role: "system",
+            content: jsonMode
+                ? "You are a precise JSON generator for an English learning platform. Return ONLY valid raw JSON matching the exact requested schema without markdown fences or extra text."
+                : "You are an expert English teacher for Vietnamese students. Follow the user's formatting instructions strictly."
+        },
+        {
+            role: "user",
+            content: userContent.length === 1 ? prompt : userContent
+        }
+    ];
+
+    const body = {
+        model: "openai",
+        messages,
+        temperature: 0.25
+    };
+
+    const resp = await fetch("https://text.pollinations.ai/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+    if (!resp.ok) {
+        throw new Error(`Fallback HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    const text = (data?.choices?.[0]?.message?.content || "").trim();
+    if (!text) throw new Error("Empty fallback response");
+    return text;
+}
+
 export async function callGemini(env, prompt, jsonMode = false, inlineData = null) {
+    if (env && env.__clientAiResult) {
+        const cached = env.__clientAiResult;
+        env.__clientAiResult = null;
+        return cached;
+    }
+
     const rawKeys = (env && env.GEMINI_API_KEY) ? env.GEMINI_API_KEY : "";
     const envKeys = rawKeys.split(/[,;\n\r]+/).map(k => k.trim()).filter(Boolean);
-    const keys = Array.from(new Set([...envKeys, ...DEFAULT_GEMINI_KEYS]));
+    const keys = Array.from(new Set([...DEFAULT_GEMINI_KEYS, ...envKeys]));
 
     let lastErr = null;
+    const maxServerAttempts = Math.min(2, keys.length);
     for (const model of MODELS) {
-        for (let attempt = 0; attempt < keys.length; attempt++) {
+        for (let attempt = 0; attempt < maxServerAttempts; attempt++) {
             const idx = keyCursor % keys.length;
             keyCursor = (keyCursor + 1) % keys.length;
             const key = keys[idx];
@@ -64,17 +112,40 @@ export async function callGemini(env, prompt, jsonMode = false, inlineData = nul
                 if (!resp.ok) {
                     const errTxt = await resp.text();
                     lastErr = new Error(`Gemini HTTP ${resp.status}: ${errTxt.slice(0, 120)}`);
+                    if (resp.status === 429) {
+                        // Edge region (e.g. HKG) is rate-limited/blocked by Google -> break immediately to fallback
+                        break;
+                    }
                     continue;
                 }
 
                 const data = await resp.json();
-                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                if (text && text.trim()) return text.trim();
+                const resParts = data?.candidates?.[0]?.content?.parts || [];
+                const text = resParts.filter(p => !p.thought).map(p => p.text || "").join("").trim()
+                    || resParts.map(p => p.text || "").join("").trim();
+                if (text) return text;
             } catch (e) {
                 lastErr = e;
             }
         }
     }
+
+    // If inlineData is not audio (i.e. text, JSON, or image), use server-side OpenAI-compatible fallback immediately so HKG 429 never fails!
+    if (!inlineData || !inlineData.mimeType || !inlineData.mimeType.startsWith("audio/")) {
+        try {
+            return await callOpenAiFallback(prompt, jsonMode, inlineData);
+        } catch (fbErr) {
+            // If fallback also fails, continue to client relay
+        }
+    }
+
+    if (!env || !env.__disableClientRelay) {
+        const relayErr = new Error("NEED_CLIENT_GEMINI");
+        relayErr.isNeedClientGemini = true;
+        relayErr.geminiPayload = { prompt, jsonMode, inlineData };
+        throw relayErr;
+    }
+
     throw lastErr || new Error("Không thể kết nối Gemini AI");
 }
 
@@ -614,13 +685,13 @@ BẮT BUỘC trả về DUY NHẤT đối tượng JSON hợp lệ theo đúng c
 // SOUNDWHY PRONUNCIATION GUIDE (/api/huong-dan-doc)
 // =========================================================
 
-export async function layHuongDanDoc(tu, phienAmParam, nghiaParam) {
+export async function layHuongDanDoc(tu, phienAmParam, nghiaParam, env = null) {
     const word = (tu || "").trim();
     let phienAm = (phienAmParam || "").trim();
     let nghia = (nghiaParam || "").trim();
 
     if (!phienAm || !nghia) {
-        const info = await layTuDienAnh(word);
+        const info = await layTuDienAnh(word, env);
         if (!phienAm) phienAm = info.phienAm;
         if (!nghia) nghia = info.tiengViet;
     }
