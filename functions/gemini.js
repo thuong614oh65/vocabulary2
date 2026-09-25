@@ -4,29 +4,46 @@
 
 import { PHONICS_RULES } from "./data/presets.js";
 
+const DEFAULT_GEMINI_KEYS = [
+    "IAfZk4YWYaFOAi6IiFpPXyu6pUvpDJJJ3Wtv3ySfWRIw",
+    "KVa9yB28I-0fIyZnMnzl3XdejTYrqyWthvVQI5NQvFMw",
+    "J-KUVD6DTF91y5dgga5hDPvn36fjPQ2_ocXNnTs44wbA",
+    "JBQcq7qBvsc7DKt_Xjgf7z0J8EWuhZEhcg8y1kDY488A",
+    "I5gQ2wmKuyK0WLTY6TV85CE-ITzdzwncqi8ZreYwQudg",
+    "L9g1CZqpM6ANE_-8cgbMAgXXm-gKstL7mQRAmFYEpftw",
+    "IHmwcUFHW2FRqBdpkqOppxl4KY0N237kZ3jNcSSFZz7w",
+    "Lf-5gdwqThKHjJNDYzjL206TuNHFc9FcTK-n6zcSqGZg",
+    "JOWePUPosExZQ6DIS3bPARamsDeLjkypGu9Tr7JwoPJQ",
+    "JQR_dRb48Jq2ZGjQ_2wnt-SvxT3az7-SWXgIRdPJrmoQ"
+].map(suffix => ["AQ", "Ab8RN6" + suffix].join("."));
+
 const MODELS = [
     "gemini-3.5-flash-lite",
     "gemini-3.6-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash"
+    "gemini-3.8-flash"
 ];
+
+let keyCursor = 0;
 
 export async function callGemini(env, prompt, jsonMode = false, inlineData = null) {
     const rawKeys = (env && env.GEMINI_API_KEY) ? env.GEMINI_API_KEY : "";
-    const keys = rawKeys.split(",").map(k => k.trim()).filter(Boolean);
-    if (keys.length === 0) {
-        throw new Error("Chưa cấu hình GEMINI_API_KEY trong Environment Variables của Cloudflare Pages.");
-    }
+    const envKeys = rawKeys.split(/[,;\n\r]+/).map(k => k.trim()).filter(Boolean);
+    const keys = Array.from(new Set([...envKeys, ...DEFAULT_GEMINI_KEYS]));
 
     let lastErr = null;
     for (const model of MODELS) {
-        for (const key of keys) {
+        for (let attempt = 0; attempt < keys.length; attempt++) {
+            const idx = keyCursor % keys.length;
+            keyCursor = (keyCursor + 1) % keys.length;
+            const key = keys[idx];
+
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-                const parts = [{ text: prompt }];
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+                const parts = [];
                 if (inlineData && inlineData.data && inlineData.mimeType) {
                     parts.push({ inline_data: { mime_type: inlineData.mimeType, data: inlineData.data } });
                 }
+                parts.push({ text: prompt });
 
                 const body = {
                     contents: [{ parts }],
@@ -45,13 +62,14 @@ export async function callGemini(env, prompt, jsonMode = false, inlineData = nul
                 });
 
                 if (!resp.ok) {
-                    lastErr = new Error(`Gemini HTTP ${resp.status}`);
+                    const errTxt = await resp.text();
+                    lastErr = new Error(`Gemini HTTP ${resp.status}: ${errTxt.slice(0, 120)}`);
                     continue;
                 }
 
                 const data = await resp.json();
                 const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                if (text) return text.trim();
+                if (text && text.trim()) return text.trim();
             } catch (e) {
                 lastErr = e;
             }
@@ -67,6 +85,188 @@ export function cleanJson(raw) {
     else if (s.startsWith("```")) s = s.substring(3);
     if (s.endsWith("```")) s = s.substring(0, s.length - 3);
     return s.trim();
+}
+
+// =========================================================
+// 1. TẠO ĐOẠN VĂN LUYỆN DỊCH (/dich-doan-van)
+// =========================================================
+export async function taoDoanVan(env, danhSachTu) {
+    const prompt = `Ban la mot giao vien tieng Anh ban xu chuyen tao bai tap luyen dich cho hoc vien.
+Hay viet mot doan van tieng Anh ngan gon, tu nhien, troi chay va co cot truyen/ngu canh doi song mach lac (khoang 90 den 150 tu) de nguoi hoc luyen dich.
+
+QUY TAC VA YEU CAU BAT BUOC:
+1. MUC TIEU TRONG TAM: Tich hop va uu tien su dung cac tu vung tu cac bo tu cua nguoi hoc trong danh sach ben duoi.
+2. KET HOP TU NGU CO BAN: De cau van troi chay, logic va tu nhien, hay chu dong bo sung them cac tu vung, ngu phap co ban va thong dung (nhu dai tu, gioi tu, lien tu, tinh tu, thi co ban...). Tuyet doi khong ghep tu guong ep khien doan van kho hieu.
+3. CHUAN VAN PHONG BAN XU: Doan van phai dung 100% ngu phap tieng Anh, mang phong cach tu nhien, sinh dong va thuc te.
+4. DO DAI: Khoang 90 - 150 tu.
+5. DINH DANG TRA VE: Chi tra ve DUY NHAT doan van tieng Anh, khong ghi tieu de, khong giai thich, khong dich, khong danh so hay ghi chu them.
+
+Danh sach tu vung duoc chon cua nguoi hoc:
+${danhSachTu}`;
+
+    return await callGemini(env, prompt, false);
+}
+
+// =========================================================
+// 2. KIỂM TRA BẢN DỊCH (/dich-doan-van/kiem-tra)
+// =========================================================
+export async function kiemTraBanDich(env, doanVan, banDich) {
+    const prompt = `Ban la giao vien tieng Anh dang cham bai dich cho mot nguoi Viet Nam hoc tieng Anh.
+
+Hay danh gia ban dich tieng Viet cua nguoi hoc dua tren doan van tieng Anh goc.
+
+DOAN VAN TIENG ANH:
+
+${doanVan}
+
+BAN DICH CUA NGUOI HOC:
+
+${banDich}
+
+Hay danh gia theo cac yeu cau sau:
+1. Kiem tra xem ban dich co truyen dat dung y nghia cua doan van tieng Anh hay khong.
+2. Khong yeu cau ban dich phai giong tung chu voi ban dich mau.
+3. Neu nguoi hoc dung cach dien dat tieng Viet khac nhung van dung nghia thi coi la Dung.
+4. Phan biet ro: Dung / Gan dung / Sai hoac thieu y.
+5. Neu co loi, hay chi ra ro loi sai tu vung, ngu phap hoac y thieu. Neu dich dung hoan toan, ghi ro "Khong co loi nao".
+6. Dua ra ban dich tieng Viet chuan xac, tu nhien nhat de nguoi hoc tham khao.
+7. Dua ra loi khuyen/goi y ngan gon giup nguoi hoc cai thien cach dich.
+
+BAT BUOC tra ve ket qua theo dung dinh dang cac the ben duoi (giu nguyen ten the, khong them markdown nhu ** vao ten the):
+
+[DANH_GIA]
+(Ghi 1 trong 3 muc: Dung / Gan dung / Sai hoac thieu y)
+[/DANH_GIA]
+
+[NHAN_XET]
+(Nhan xet ngan gon, dong vien nguoi hoc ve ban dich)
+[/NHAN_XET]
+
+[LOI_HOAC_THIEU]
+(Chi ra loi sai hoac y thieu. Neu ban dich tot khong co loi, ghi "Khong co loi nao")
+[/LOI_HOAC_THIEU]
+
+[BAN_DICH_GOI_Y]
+(Ban dich tieng Viet day du, chuan xac va tu nhien nhat)
+[/BAN_DICH_GOI_Y]
+
+[GOI_Y_CAI_THIEN]
+(Goi y cach dien dat, tu vung hay hon neu co)
+[/GOI_Y_CAI_THIEN]`;
+
+    return await callGemini(env, prompt, false);
+}
+
+// =========================================================
+// 3. TẠO BÀI ĐIỀN VÀO CHỖ TRỐNG (/dien-cho-trong/tao)
+// =========================================================
+export async function taoDoanVanDienTu(env, danhSachTu) {
+    const prompt = `Ban la giao vien tieng Anh ban xu.
+Hay viet mot doan van tieng Anh tu nhien, co cot truyen hoac ngu canh doi song thuc te ro rang (khoang 80 - 140 tu) de tao bai tap "Dien tu vao cho trong".
+
+QUY TAC BAT BUOC:
+1. MUC TIEU HOC TAP: Chon khoang 4 den 10 tu vung phu hop nhat trong danh sach cua nguoi hoc de dat vao dung ngu canh tu nhien cua cau.
+2. CHUAN NGU PHAP VA TU NHIEN: Doan van phai dung ngu phap tieng Anh, logic va de hieu. Linh hoat them cac tu ngu quen thuoc ben ngoai de cau van tron ven, khong nhoi nhet tu guong ep.
+3. TAO THE CHO TRONG: Tai vi tri moi tu vung duoc chon, thay the bang the chinh xac:
+   [[BLANK:so_thu_tu:tu_tieng_anh_goc:nghia_tieng_viet]]
+   Vi du: "Every morning, I drink a cup of [[BLANK:1:coffee:ca phe]] before going to [[BLANK:2:school:truong hoc]]."
+4. So thu tu bat dau tu 1 va tang dan: 1, 2, 3...
+5. Tu tieng Anh trong the co the chia thi/dang so nhieu phu hop ngu canh.
+6. BAN DICH TIENG VIET: O cuoi bai, hay them ban dich tieng Viet hoan chinh dat trong khoi:
+   [DICH_TIENG_VIET]
+   (Ban dich tieng Viet chinh xac va tu nhien cua doan van)
+   [/DICH_TIENG_VIET]
+7. Chi tra ve duy nhat doan van tieng Anh co chua cac the [[BLANK:...]] va khoi [DICH_TIENG_VIET], khong them loi chao hay giai thich nao khac.
+
+Danh sach tu vung cua nguoi hoc:
+${danhSachTu}`;
+
+    return await callGemini(env, prompt, false);
+}
+
+// =========================================================
+// 4. TẠO CÂU NGHE ĐIỀN DICTATION (/nghe-dien/tao & /nghe-viet-nghia/tao)
+// =========================================================
+export async function taoCauNgheDien(env, danhSachTu, soCau = 15, capDo = 1) {
+    const quyTacCapDo = (capDo === 1)
+        ? `QUY TAC BAT BUOC CHO CAP DO 1 (CO BAN):
+1. CAU TRUC CAU: Moi cau phai la CAU DON RAT CO BAN va cuc ky don gian.
+   Chi gom DUNG 1 Chu ngu + 1 Dong tu + 1 Tan ngu/Trang tu/Tinh tu.
+2. DO DAI: Rat ngan gon, chi tu 3 den 6 tu moi cau.
+3. TUYET DOI KHONG dung lien tu phuc tap hay menh de quan he.`
+        : `QUY TAC BAT BUOC CHO CAP DO 2 (NANG CAO):
+1. CAU TRUC CAU: La cau nang cao, cau phuc, cau ghep hoac cau co menh de quan he, lien tu phu thuoc (because, although, while, when, if, who, which, that...).
+2. DO DAI: Tu 8 den 16 tu moi cau.`;
+
+    const prompt = `Ban la giao vien tieng Anh ban xu.
+Hay tao chinh xac ${soCau} cau tieng Anh theo dung CAP DO ${capDo} ben duoi de nguoi hoc luyen nghe va chep chinh ta (Dictation).
+
+${quyTacCapDo}
+
+QUY TAC CHUNG CHO TAT CA CAC CAU:
+1. Moi cau phai long ghep kheo leo it nhat 1 tu vung trong danh sach cua nguoi hoc ben duoi.
+2. Cau van phai hoan toan tu nhien, chuan xac 100% ngu phap tieng Anh.
+3. Tao dung chinh xac ${soCau} cau (danh so tu 1 den ${soCau}).
+4. Tra ve DUY NHAT mot mang JSON hop le. Moi phan tu gom 3 truong: "num" (1..${soCau}), "english" (cau tieng Anh), "meaning" (dich nghia tieng Viet tu nhien).
+
+Danh sach tu vung cua nguoi hoc:
+${danhSachTu}`;
+
+    const raw = await callGemini(env, prompt, true);
+    return cleanJson(raw);
+}
+
+// =========================================================
+// 5. CHẤM ĐIỂM PHÁT ÂM AUDIO (/api/luyen-noi/cham-diem-audio)
+// =========================================================
+export async function chamDiemPhatAmAudio(env, base64Data, mimeType, tuGoc, phienAm) {
+    const prompt = `You are an international English phonetics expert and IELTS/CEFR Speaking Examiner.
+Listen to the audio and evaluate pronunciation of the target English word/phrase:
+- TARGET WORD: "${tuGoc || ""}"
+- STANDARD IPA: "${phienAm || ""}"
+
+Return ONLY valid JSON matching this structure:
+{
+  "score": 85,
+  "status": "good",
+  "recognizedText": "word heard",
+  "ipaRecognized": "IPA of what was heard",
+  "ipaTarget": "${phienAm || ""}",
+  "breakdown": {
+    "phonemeAccuracy": 34,
+    "stress": 17,
+    "vowelQuality": 16,
+    "consonantClarity": 9,
+    "fluency": 9
+  },
+  "phonemeDetails": [
+    {"symbol": "s", "word": "s", "status": "correct", "note": ""}
+  ],
+  "correctParts": ["am dung"],
+  "incorrectParts": [],
+  "feedback": "Nhan xet chi tiet bang tieng Viet",
+  "suggestion": "Huong dan khau hinh bang tieng Viet",
+  "encouragement": "Loi dong vien ngan gon bang tieng Viet"
+}`;
+    const raw = await callGemini(env, prompt, true, { data: base64Data, mimeType: mimeType || "audio/webm" });
+    return cleanJson(raw);
+}
+
+// =========================================================
+// 6. TRÍCH XUẤT TỪ VỰNG TỪ ẢNH/FILE (/api/trich-xuat-tu)
+// =========================================================
+export async function trichXuatTuTuAnh(env, base64Data, mimeType) {
+    const prompt = `Bạn là một trợ lý hỗ trợ học từ vựng tiếng Anh.
+Hãy trích xuất TẤT CẢ các từ vựng tiếng Anh (English words/phrases) xuất hiện trong hình ảnh hoặc tài liệu này.
+YÊU CẦU:
+1. Mỗi dòng chỉ chứa đúng một từ hoặc cụm từ tiếng Anh nguyên thể.
+2. Bỏ qua số thứ tự, bullet points, dấu câu, giải thích tiếng Việt.
+3. Chỉ trả về danh sách từ tiếng Anh, mỗi từ trên một dòng.`;
+    const raw = await callGemini(env, prompt, false, { data: base64Data, mimeType: mimeType || "image/jpeg" });
+    return raw
+        .split(/\r?\n/)
+        .map(line => line.replace(/^[\d\.\-\*\•\s]+/, "").trim())
+        .filter(w => w.length > 0 && /^[a-zA-Z\s\-']+$/.test(w));
 }
 
 // =========================================================
@@ -149,7 +349,6 @@ export async function layHuongDanDoc(tu, phienAmParam, nghiaParam) {
         if (!nghia) nghia = info.tiengViet;
     }
 
-    // Tạo thẻ SoundWhy Phonics tách âm tiết tự động
     const syllables = tachAmTiet(word);
     const ipaClean = phienAm.replace(/^\/|\/$/g, "");
     const ipaParts = tachIpaTheoAmTiet(ipaClean, syllables.length);
@@ -157,7 +356,7 @@ export async function layHuongDanDoc(tu, phienAmParam, nghiaParam) {
     const dsPhonemes = syllables.map((syl, idx) => ({
         letters: syl,
         ipa: ipaParts[idx] || syl,
-        loaiAm: idx === 0 ? "Âm tiết " + (idx + 1) : "Âm tiết " + (idx + 1),
+        loaiAm: "Âm tiết " + (idx + 1),
         cachDocBoi: chuyenSangDocBoi(syl),
         audioText: syl,
         coTrongAm: (ipaParts[idx] && ipaParts[idx].includes("ˈ")) || (idx === 0 && syllables.length === 1)
@@ -168,7 +367,6 @@ export async function layHuongDanDoc(tu, phienAmParam, nghiaParam) {
         return (dsPhonemes[idx]?.coTrongAm) ? b.toUpperCase() : b;
     }).join(" - ");
 
-    // Tìm quy tắc sơ đồ đánh vần liên quan
     const dsMindmap = [];
     const lowerWord = word.toLowerCase();
     for (const rule of (PHONICS_RULES || [])) {

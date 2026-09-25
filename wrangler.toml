@@ -1,9 +1,10 @@
 name = "vocabulary2"
 main = "src/worker.js"
 compatibility_date = "2024-09-23"
-workers_dev = true
-keep_vars = true
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
+
+[vars]
+DATABASE_URL = "postgresql://neondb_owner:npg_1tQqN2VkGMsH@ep-little-thunder-azqmb031.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"

@@ -17,6 +17,12 @@ import {
 import {
     callGemini,
     cleanJson,
+    taoDoanVan,
+    kiemTraBanDich,
+    taoDoanVanDienTu,
+    taoCauNgheDien,
+    chamDiemPhatAmAudio,
+    trichXuatTuTuAnh,
     dichAnhViet,
     layTuDienAnh,
     traTuHangLoat,
@@ -46,6 +52,10 @@ import {
     renderLuyenDe,
     renderLuyenPhanXa,
     renderTraTu,
+    renderDichDoanVan,
+    renderDienChoTrong,
+    renderNgheDien,
+    renderLuyenNoi,
     renderGenericTemplate
 } from "./renderer.js";
 
@@ -446,14 +456,42 @@ export async function onRequest(context) {
     }
 
     if (pathname === "/api/hoc/de-xuat-chu-de" && method === "GET") {
-        const chuDe = url.searchParams.get("chuDe") || "Giao tiếp";
-        const tatCa = await getTatCaTuByUser(env, taiKhoanId);
-        const daCo = tatCa.map(t => t.tiengAnh.toLowerCase()).slice(0, 150).join(", ");
-        const prompt = `Hãy đề xuất đúng 10 từ vựng tiếng Anh thông dụng thuộc chủ đề "${chuDe}" mà KHÔNG nằm trong danh sách sau: [${daCo}].
-Trả về mảng JSON gồm 10 phần tử theo cấu trúc:
+        try {
+            const chuDe = (url.searchParams.get("chuDe") || "Giao tiếp").trim();
+            const loaiTruParam = url.searchParams.get("loaiTru") || "";
+            const tatCa = await getTatCaTuByUser(env, taiKhoanId);
+            const setDaCo = new Set(tatCa.map(t => (t.tiengAnh || "").trim().toLowerCase()).filter(Boolean));
+            for (const w of loaiTruParam.split(",")) {
+                if (w && w.trim()) setDaCo.add(w.trim().toLowerCase());
+            }
+            const daCoStr = Array.from(setDaCo).slice(0, 200).join(", ");
+            const prompt = `Hãy đề xuất đúng 12 từ vựng tiếng Anh thông dụng, thực tế thuộc chủ đề "${chuDe}" mà TUYỆT ĐỐI KHÔNG nằm trong danh sách các từ đã biết sau: [${daCoStr}].
+Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu trúc:
 [{"tiengAnh": "...", "phienAm": "/.../", "tiengViet": "...", "viDu": "..."}]`;
-        const raw = await callGemini(env, prompt, true);
-        return jsonResponse(JSON.parse(cleanJson(raw)), 200, sid);
+            const raw = await callGemini(env, prompt, true);
+            const parsed = JSON.parse(cleanJson(raw));
+            const arr = Array.isArray(parsed) ? parsed : [];
+            const ketQuaChuan = [];
+            for (const item of arr) {
+                const w = (item.tiengAnh || "").trim();
+                if (w && !setDaCo.has(w.toLowerCase())) {
+                    setDaCo.add(w.toLowerCase());
+                    ketQuaChuan.push({
+                        tiengAnh: w,
+                        phienAm: item.phienAm || `/${w.toLowerCase()}/`,
+                        tiengViet: item.tiengViet || "",
+                        viDu: item.viDu || ""
+                    });
+                }
+                if (ketQuaChuan.length >= 10) break;
+            }
+            return jsonResponse(ketQuaChuan, 200, sid);
+        } catch (err) {
+            return new Response("Lỗi AI đề xuất chủ đề: " + (err.message || "Vui lòng thử lại"), {
+                status: 500,
+                headers: { "Content-Type": "text/plain; charset=UTF-8" }
+            });
+        }
     }
 
     // =========================================================
@@ -780,13 +818,346 @@ Trả về mảng JSON gồm 10 phần tử theo cấu trúc:
         return jsonResponse({ success: true, message: "Đã lưu từ thành công!" }, 200, sid);
     }
 
-    if (["/dich-doan-van", "/dien-cho-trong", "/nghe-dien", "/nghe-viet-nghia", "/luyen-noi"].includes(pathname)) {
-        const tplName = pathname.substring(1);
+    // =========================================================
+    // TRÍCH XUẤT TỪ VỰNG TỪ ẢNH / FILE (/api/trich-xuat-tu)
+    // =========================================================
+    if (pathname === "/api/trich-xuat-tu" && method === "POST") {
+        try {
+            const formData = await request.formData();
+            const file = formData.get("file");
+            if (!file) {
+                return jsonResponse({ thanhCong: false, thongBao: "Không nhận được tệp!" }, 200, sid);
+            }
+            const mimeType = file.type || "image/jpeg";
+            if (mimeType.startsWith("text/") || (file.name && file.name.endsWith(".txt"))) {
+                const txt = await file.text();
+                const dsTu = txt.split(/\r?\n/).map(w => w.trim()).filter(Boolean);
+                return jsonResponse({
+                    thanhCong: dsTu.length > 0,
+                    soLuong: dsTu.length,
+                    danhSachTu: dsTu,
+                    noiDung: dsTu.join("\n"),
+                    thongBao: dsTu.length > 0 ? `Đã trích xuất thành công ${dsTu.length} từ vựng!` : "Không tìm thấy từ vựng!"
+                }, 200, sid);
+            }
+            const buf = await file.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            let bin = "";
+            for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+            const base64 = btoa(bin);
+            const dsTu = await trichXuatTuTuAnh(env, base64, mimeType);
+            return jsonResponse({
+                thanhCong: dsTu.length > 0,
+                soLuong: dsTu.length,
+                danhSachTu: dsTu,
+                noiDung: dsTu.join("\n"),
+                thongBao: dsTu.length > 0 ? `Đã trích xuất thành công ${dsTu.length} từ vựng!` : "Không tìm thấy từ vựng tiếng Anh nào trong tệp này!"
+            }, 200, sid);
+        } catch (err) {
+            return jsonResponse({ thanhCong: false, thongBao: "Lỗi xử lý file: " + err.message }, 200, sid);
+        }
+    }
+
+    // =========================================================
+    // DỊCH ĐOẠN VĂN (/dich-doan-van, /dich-doan-van/kiem-tra, /dich-doan-van/nghia)
+    // =========================================================
+    if (pathname === "/dich-doan-van/nghia" && method === "GET") {
+        const tu = (url.searchParams.get("tu") || "").trim();
+        if (!tu) return jsonResponse({ nghia: "Không có từ để tra." }, 400, sid);
+        const nghia = await dichAnhViet(tu);
+        return jsonResponse({ nghia: nghia || "Không tìm thấy nghĩa." }, 200, sid);
+    }
+
+    if (pathname === "/dich-doan-van" && method === "GET") {
         const [dsBo, tatCa] = await Promise.all([
             getBoTuVungByUser(env, taiKhoanId),
             getTatCaTuByUser(env, taiKhoanId)
         ]);
-        return htmlResponse(renderGenericTemplate(tplName, dsBo, tatCa.length), sid);
+        const tuVungTuCSDL = tatCa.map(t => ({ tiengAnh: t.tiengAnh || "", tiengViet: t.tiengViet || "" }));
+        return htmlResponse(renderDichDoanVan({
+            dsBo,
+            boIdsChon: [],
+            chonTatCa: true,
+            tuVungTuCSDL
+        }), sid);
+    }
+
+    if (pathname === "/dich-doan-van" && method === "POST") {
+        const formData = await request.formData();
+        const boIds = formData.getAll("boIds").map(Number).filter(Boolean);
+        let chonTatCa = formData.get("chonTatCa") === "true" || boIds.length === 0;
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        const tuVungTuCSDL = tatCa.map(t => ({ tiengAnh: t.tiengAnh || "", tiengViet: t.tiengViet || "" }));
+        const setBoIds = new Set(boIds);
+        const dsTuVung = chonTatCa ? tatCa : tatCa.filter(t => setBoIds.has(Number(t.boId)));
+
+        if (dsTuVung.length === 0) {
+            return htmlResponse(renderDichDoanVan({
+                dsBo,
+                boIdsChon: boIds,
+                chonTatCa,
+                loi: "Không tìm thấy từ vựng nào trong các bộ từ bạn đã chọn để tạo đoạn văn.",
+                tuVungTuCSDL
+            }), sid);
+        }
+
+        const tuDuocChon = shuffleArray(dsTuVung).slice(0, 35);
+        const danhSachTu = tuDuocChon.map(t => `- ${t.tiengAnh}${t.tiengViet ? ` (nghĩa: ${t.tiengViet})` : ""}`).join("\n");
+
+        try {
+            const doanVan = await taoDoanVan(env, danhSachTu);
+            return htmlResponse(renderDichDoanVan({
+                dsBo,
+                boIdsChon: boIds,
+                chonTatCa,
+                doanVan,
+                tuVungTuCSDL
+            }), sid);
+        } catch (err) {
+            return htmlResponse(renderDichDoanVan({
+                dsBo,
+                boIdsChon: boIds,
+                chonTatCa,
+                loi: "Lỗi AI tạo đoạn văn: " + (err.message || "Vui lòng thử lại"),
+                tuVungTuCSDL
+            }), sid);
+        }
+    }
+
+    if (pathname === "/dich-doan-van/kiem-tra" && method === "POST") {
+        const formData = await request.formData();
+        const doanVan = (formData.get("doanVan") || "").trim();
+        const banDich = (formData.get("banDich") || "").trim();
+        const boIds = formData.getAll("boIds").map(Number).filter(Boolean);
+        const chonTatCa = formData.get("chonTatCa") === "true" || boIds.length === 0;
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        const tuVungTuCSDL = tatCa.map(t => ({ tiengAnh: t.tiengAnh || "", tiengViet: t.tiengViet || "" }));
+
+        if (!doanVan || !banDich) {
+            return htmlResponse(renderDichDoanVan({
+                dsBo,
+                boIdsChon: boIds,
+                chonTatCa,
+                doanVan,
+                banDich,
+                loi: !doanVan ? "Không tìm thấy đoạn văn cần dịch." : "Bạn chưa nhập bản dịch.",
+                tuVungTuCSDL
+            }), sid);
+        }
+
+        try {
+            const ketQua = await kiemTraBanDich(env, doanVan, banDich);
+            const extractTag = (txt, tag) => {
+                const m = txt.match(new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`, "i"));
+                return m ? m[1].trim() : "";
+            };
+            let danhGia = extractTag(ketQua, "DANH_GIA") || "Đúng";
+            let nhanXet = extractTag(ketQua, "NHAN_XET") || ketQua;
+            let loiHoacThieu = extractTag(ketQua, "LOI_HOAC_THIEU") || "Không có lỗi sai nghiêm trọng.";
+            let banDichGoiY = extractTag(ketQua, "BAN_DICH_GOI_Y") || "";
+            let goiYCaiThien = extractTag(ketQua, "GOI_Y_CAI_THIEN") || "";
+
+            let danhGiaLoai = "dung";
+            const dgLow = danhGia.toLowerCase();
+            if (dgLow.includes("gần đúng") || dgLow.includes("gan dung")) danhGiaLoai = "gan-dung";
+            else if (dgLow.includes("sai") || dgLow.includes("thiếu") || dgLow.includes("thieu")) danhGiaLoai = "sai";
+
+            return htmlResponse(renderDichDoanVan({
+                dsBo,
+                boIdsChon: boIds,
+                chonTatCa,
+                doanVan,
+                banDich,
+                ketQua,
+                danhGia,
+                danhGiaLoai,
+                nhanXet,
+                loiHoacThieu,
+                banDichGoiY,
+                goiYCaiThien,
+                tuVungTuCSDL
+            }), sid);
+        } catch (err) {
+            return htmlResponse(renderDichDoanVan({
+                dsBo,
+                boIdsChon: boIds,
+                chonTatCa,
+                doanVan,
+                banDich,
+                loi: "Lỗi AI chấm bản dịch: " + (err.message || "Vui lòng thử lại"),
+                tuVungTuCSDL
+            }), sid);
+        }
+    }
+
+    // =========================================================
+    // ĐIỀN VÀO CHỖ TRỐNG (/dien-cho-trong, /dien-cho-trong/tao)
+    // =========================================================
+    if (pathname === "/dien-cho-trong" && method === "GET") {
+        const boId = url.searchParams.get("boId") ? Number(url.searchParams.get("boId")) : null;
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        const dsTu = (boId && boId > 0) ? tatCa.filter(t => t.boId === boId) : tatCa;
+        return htmlResponse(renderDienChoTrong({ dsBo, boIdChon: boId, tongSoTu: dsTu.length }), sid);
+    }
+
+    if (pathname === "/dien-cho-trong/tao" && method === "POST") {
+        const formData = await request.formData();
+        const boId = formData.get("boId") ? Number(formData.get("boId")) : null;
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        const dsTu = (boId && boId > 0) ? tatCa.filter(t => t.boId === boId) : tatCa;
+        if (dsTu.length === 0) {
+            return htmlResponse(renderDienChoTrong({ dsBo, boIdChon: boId, tongSoTu: 0, loi: "Bạn chưa có từ vựng nào trong danh sách được chọn để tạo bài tập!" }), sid);
+        }
+        const tuDuocChon = shuffleArray(dsTu).slice(0, 25);
+        const danhSachTu = tuDuocChon.map(t => `- ${t.tiengAnh}${t.tiengViet ? ` (nghĩa: ${t.tiengViet})` : ""}`).join("\n");
+        try {
+            const doanVanRaw = await taoDoanVanDienTu(env, danhSachTu);
+            return htmlResponse(renderDienChoTrong({ dsBo, boIdChon: boId, tongSoTu: dsTu.length, doanVanRaw }), sid);
+        } catch (err) {
+            return htmlResponse(renderDienChoTrong({ dsBo, boIdChon: boId, tongSoTu: dsTu.length, loi: "Lỗi AI tạo bài tập: " + err.message }), sid);
+        }
+    }
+
+    // =========================================================
+    // NGHE ĐIỀN & NGHE VIẾT NGHĨA (/nghe-dien, /nghe-viet-nghia)
+    // =========================================================
+    if ((pathname === "/nghe-dien" || pathname === "/nghe-viet-nghia") && method === "GET") {
+        const boId = url.searchParams.get("boId") ? Number(url.searchParams.get("boId")) : null;
+        const capDo = Number(url.searchParams.get("capDo") || 1);
+        const hinhThuc = url.searchParams.get("hinhThuc") || "CAU";
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        const dsTu = (boId && boId > 0) ? tatCa.filter(t => t.boId === boId) : tatCa;
+        return htmlResponse(renderNgheDien({
+            tplName: pathname.substring(1),
+            dsBo,
+            boIdChon: boId,
+            tongSoTu: dsTu.length,
+            soCauChon: 15,
+            capDoChon: capDo,
+            hinhThucChon: hinhThuc
+        }), sid);
+    }
+
+    if ((pathname === "/nghe-dien/tao" || pathname === "/nghe-viet-nghia/tao") && method === "POST") {
+        const isVietNghia = pathname.startsWith("/nghe-viet-nghia");
+        const tplName = isVietNghia ? "nghe-viet-nghia" : "nghe-dien";
+        const formData = await request.formData();
+        const boId = formData.get("boId") ? Number(formData.get("boId")) : null;
+        const soCau = Number(formData.get("soCau") || 15);
+        const capDo = Number(formData.get("capDo") || 1);
+        const hinhThuc = (formData.get("hinhThuc") || "CAU").toUpperCase();
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        const dsTu = (boId && boId > 0) ? tatCa.filter(t => t.boId === boId) : tatCa;
+        if (dsTu.length === 0) {
+            return htmlResponse(renderNgheDien({
+                tplName, dsBo, boIdChon: boId, tongSoTu: 0, soCauChon: soCau, capDoChon: capDo, hinhThucChon: hinhThuc,
+                loi: "Bạn chưa có từ vựng nào trong danh sách được chọn để tạo bài luyện nghe!"
+            }), sid);
+        }
+        if (isVietNghia && hinhThuc === "TU") {
+            const tuDuocChon = shuffleArray(dsTu).slice(0, soCau);
+            const rawJson = JSON.stringify(tuDuocChon.map((t, i) => ({
+                num: i + 1,
+                english: t.tiengAnh,
+                meaning: t.tiengViet,
+                ipa: t.phienAm || ""
+            })));
+            return htmlResponse(renderNgheDien({
+                tplName, dsBo, boIdChon: boId, tongSoTu: dsTu.length, soCauChon: soCau, capDoChon: capDo, hinhThucChon: hinhThuc,
+                rawCauNgheDien: rawJson
+            }), sid);
+        }
+        const tuDuocChon = shuffleArray(dsTu).slice(0, 30);
+        const danhSachTu = tuDuocChon.map(t => `- ${t.tiengAnh}${t.tiengViet ? ` (nghĩa: ${t.tiengViet})` : ""}`).join("\n");
+        try {
+            const rawCauNgheDien = await taoCauNgheDien(env, danhSachTu, soCau, capDo);
+            return htmlResponse(renderNgheDien({
+                tplName, dsBo, boIdChon: boId, tongSoTu: dsTu.length, soCauChon: soCau, capDoChon: capDo, hinhThucChon: hinhThuc,
+                rawCauNgheDien
+            }), sid);
+        } catch (err) {
+            return htmlResponse(renderNgheDien({
+                tplName, dsBo, boIdChon: boId, tongSoTu: dsTu.length, soCauChon: soCau, capDoChon: capDo, hinhThucChon: hinhThuc,
+                loi: "Lỗi AI tạo câu nghe: " + err.message
+            }), sid);
+        }
+    }
+
+    // =========================================================
+    // LUYỆN NÓI (/luyen-noi, /luyen-noi/bat-dau, /api/luyen-noi/cham-diem-audio)
+    // =========================================================
+    if (pathname === "/luyen-noi" && method === "GET") {
+        const boId = url.searchParams.get("boId") ? Number(url.searchParams.get("boId")) : null;
+        const kieuHoc = url.searchParams.get("kieuHoc") || "NGAU_NHIEN";
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        return htmlResponse(renderLuyenNoi({ dsBo, boIdChon: boId, kieuHocChon: kieuHoc, tongSoTu: tatCa.length }), sid);
+    }
+
+    if (pathname === "/luyen-noi/bat-dau" && method === "POST") {
+        const formData = await request.formData();
+        const kieuHoc = formData.get("kieuHoc") || "NGAU_NHIEN";
+        const boId = formData.get("boId") ? Number(formData.get("boId")) : null;
+        const soTu = Number(formData.get("soTu") || 10);
+        const [dsBo, tatCa] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getTatCaTuByUser(env, taiKhoanId)
+        ]);
+        let dsGoc = tatCa;
+        if (kieuHoc === "THEO_BO" && boId) dsGoc = tatCa.filter(t => t.boId === boId);
+        else if (kieuHoc === "TU_SAI") {
+            const sai = tatCa.filter(t => (t.soLanSai || 0) > 0);
+            if (sai.length > 0) dsGoc = sai;
+        }
+        if (dsGoc.length === 0) {
+            return htmlResponse(renderLuyenNoi({ dsBo, boIdChon: boId, kieuHocChon: kieuHoc, tongSoTu: tatCa.length, loi: "Bạn chưa có từ vựng nào trong bộ đã chọn!" }), sid);
+        }
+        const dsLuyen = shuffleArray(dsGoc).slice(0, soTu).map(t => ({
+            tiengAnh: t.tiengAnh,
+            tiengViet: t.tiengViet,
+            phienAm: t.phienAm || `/${(t.tiengAnh || "").toLowerCase()}/`,
+            viDu: t.viDu || ""
+        }));
+        return htmlResponse(renderLuyenNoi({ dsBo, boIdChon: boId, kieuHocChon: kieuHoc, tongSoTu: tatCa.length, dsLuyen }), sid);
+    }
+
+    if (pathname === "/api/luyen-noi/cham-diem-audio" && method === "POST") {
+        try {
+            const formData = await request.formData();
+            const file = formData.get("file");
+            const tuGoc = formData.get("tuGoc") || "";
+            const phienAm = formData.get("phienAm") || "";
+            if (!file) return jsonResponse({ error: "Không nhận được file âm thanh" }, 400, sid);
+            const buf = await file.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            let bin = "";
+            for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+            const base64 = btoa(bin);
+            const jsonStr = await chamDiemPhatAmAudio(env, base64, file.type || "audio/webm", tuGoc, phienAm);
+            return new Response(jsonStr, { status: 200, headers: { "Content-Type": "application/json; charset=UTF-8" } });
+        } catch (err) {
+            return jsonResponse({ error: err.message }, 500, sid);
+        }
     }
 
     // Default fallback to static asset or home

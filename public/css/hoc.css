@@ -248,6 +248,12 @@ hr {
     background: #f8fffa;
 }
 
+.table tbody td[rowspan],
+.table tbody td.td-bo-gop {
+    vertical-align: top !important;
+    padding-top: 12px !important;
+}
+
 
 /* =========================================================
    12. CỘT ENGLISH

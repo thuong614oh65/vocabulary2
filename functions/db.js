@@ -131,7 +131,7 @@ export async function getBoTuVungByUser(env, taiKhoanId) {
          LEFT JOIN tu_vung t ON t.bo_id = b.id
          WHERE b.tai_khoan_id = $1
          GROUP BY b.id, b.ten_bo, b.ngay_tao, b.tai_khoan_id
-         ORDER BY b.id ASC`,
+         ORDER BY b.id DESC`,
         [taiKhoanId]
     );
     return rows.map(r => ({
@@ -154,7 +154,7 @@ export async function getTatCaTuByUser(env, taiKhoanId) {
          FROM tu_vung t
          INNER JOIN bo_tu_vung b ON t.bo_id = b.id
          WHERE b.tai_khoan_id = $1
-         ORDER BY b.id ASC, t.id ASC`,
+         ORDER BY b.id DESC, t.id ASC`,
         [taiKhoanId]
     );
 

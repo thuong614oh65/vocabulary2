@@ -98,7 +98,7 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
     const rowsTheoBo = dsTheoBo.map((tu, idx) => {
         const isFirst = idx === 0 || (dsTheoBo[idx - 1].boId !== tu.boId);
         const rowspan = dsTheoBo.filter(x => x.boId === tu.boId).length;
-        const boCell = isFirst ? `<td rowspan="${rowspan}">${esc(tu.boTuVung?.tenBo || "")}</td>` : "";
+        const boCell = isFirst ? `<td rowspan="${rowspan}" class="align-top td-bo-gop" style="vertical-align: top !important; padding-top: 12px !important;">${esc(tu.boTuVung?.tenBo || "")}</td>` : "";
         return `<tr>
             ${boCell}
             <td class="text-center fw-bold text-secondary">${idx + 1}</td>
@@ -125,7 +125,7 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
     const rowsTatCa = dsTatCa.map((tu, idx) => {
         const isFirst = idx === 0 || (dsTatCa[idx - 1].boId !== tu.boId);
         const rowspan = dsTatCa.filter(x => x.boId === tu.boId).length;
-        const boCell = isFirst ? `<td rowspan="${rowspan}">
+        const boCell = isFirst ? `<td rowspan="${rowspan}" class="align-top td-bo-gop" style="vertical-align: top !important; padding-top: 12px !important;">
             <div class="d-flex flex-column align-items-start gap-2">
                 <span>${esc(tu.boTuVung?.tenBo || "")}</span>
                 <button type="button" class="btn-chon-ca-bo" onclick="chonTatCaTheoBo(${tu.boId}, this)" title="Chọn hoặc bỏ chọn tất cả các từ thuộc bộ này">☑️ Chọn cả bộ</button>
@@ -367,7 +367,7 @@ export function renderQuanLyTu({ dsTu = [], dsBo = [], boIdHienTai = null, thong
         const rowspan = soLuongTuTheoBo.get(idBo) || 1;
         const tenBo = tu.boTuVung ? tu.boTuVung.tenBo : "Chưa phân bộ";
 
-        const boCell = isFirstOfBo ? `<td rowspan="${rowspan}" class="td-bo-gop align-top" data-original-rowspan="${rowspan}">
+        const boCell = isFirstOfBo ? `<td rowspan="${rowspan}" class="td-bo-gop align-top" style="vertical-align: top !important; padding-top: 12px !important;" data-original-rowspan="${rowspan}">
             <div class="d-flex flex-column align-items-center gap-1">
                 <span class="badge-bo-title">${esc(tenBo)}</span>
                 ${tu.boTuVung ? `<span class="badge-bo-count">${tu.boTuVung.soLuongTu} từ</span>` : ""}
@@ -492,7 +492,191 @@ export function renderTraTu({ dsBo = [], tuKhoaBanDau = "", cheDoBanDau = "AUTO"
     return html;
 }
 
-// 14. Render generic templates (so-do-danh-van, toeic-part2, toeic-part5, etc.)
+// 14. Render dich-doan-van.html
+export function renderDichDoanVan({
+    dsBo = [],
+    boIdsChon = [],
+    chonTatCa = true,
+    loi = null,
+    doanVan = null,
+    banDich = null,
+    ketQua = null,
+    danhGia = "",
+    danhGiaLoai = "dung",
+    nhanXet = "",
+    loiHoacThieu = "",
+    banDichGoiY = "",
+    goiYCaiThien = "",
+    tuVungTuCSDL = []
+}) {
+    const selectedSet = new Set((boIdsChon || []).map(Number));
+    const boGridHtml = dsBo.length > 0
+        ? `<div class="danh-sach-bo-grid mt-2">` + dsBo.map(bo => {
+            const checked = chonTatCa || selectedSet.has(Number(bo.id));
+            return `<div class="bo-check-item">
+                <input class="form-check-input check-bo" type="checkbox" name="boIds" value="${bo.id}" id="bo_${bo.id}" ${checked ? "checked" : ""}>
+                <label class="form-check-label fw-semibold ms-2" for="bo_${bo.id}">
+                    <span class="ten-bo-text">${esc(bo.tenBo)}</span>
+                    <span class="badge bg-secondary-subtle text-secondary ms-1" style="font-size: 11px;">${bo.soLuongTu} từ</span>
+                </label>
+            </div>`;
+        }).join("") + `</div>`
+        : `<div class="text-muted small mt-2"><em>Bạn chưa có bộ từ nào riêng. Hệ thống sẽ sử dụng toàn bộ từ vựng hiện có trong tài khoản của bạn.</em></div>`;
+
+    const loiHtml = loi ? `<div class="loi">${esc(loi)}</div>` : "";
+
+    const hiddenBoInputs = (boIdsChon || []).map(id => `<input type="hidden" name="boIds" value="${id}">`).join("");
+    const khungChiaDoiHtml = doanVan ? `<div class="khung-chia-doi">
+        <div class="doan-van">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h3 class="mb-0 text-success fw-bold">📖 Đoạn văn cần dịch</h3>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1" id="btnNgheDoanVan" title="Nghe toàn bộ đoạn văn">🔊 Nghe đoạn văn</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm px-3 py-1" id="btnDungNgheDoanVan" style="display: none;" title="Dừng đọc đoạn văn">⏹️ Dừng đọc</button>
+                </div>
+            </div>
+            <div id="noiDungDoanVan" class="noi-dung-doan-van" data-doan-van="${esc(doanVan)}"></div>
+        </div>
+        <div class="phan-dich">
+            <h3>✍️ Bản dịch của bạn</h3>
+            <p class="mo-ta">Hãy tự dịch đoạn văn tiếng Anh sang tiếng Việt.</p>
+            <form method="post" action="/dich-doan-van/kiem-tra" class="form-dich-submit">
+                <input type="hidden" name="doanVan" value="${esc(doanVan)}">
+                ${hiddenBoInputs}
+                <input type="hidden" name="chonTatCa" value="${chonTatCa ? "true" : "false"}">
+                <textarea name="banDich" class="o-nhap-ban-dich" placeholder="Nhập bản dịch tiếng Việt của bạn..." required>${esc(banDich || "")}</textarea>
+                <button type="submit" class="btn-kiem-tra">✅ Kiểm tra bản dịch</button>
+            </form>
+        </div>
+    </div>` : "";
+
+    const ketQuaBanDichHtml = banDich ? `<div class="ket-qua-ban-dich">
+        <h3>📝 Bản dịch của bạn</h3>
+        <div class="noi-dung-ban-dich">${esc(banDich)}</div>
+    </div>` : "";
+
+    const ketQuaGeminiHtml = ketQua ? `<div class="ket-qua-gemini">
+        <h3>🤖 Kết quả đánh giá</h3>
+        <div class="phan-ket-qua phan-danh-gia">
+            <h4>📊 Đánh giá tổng quan</h4>
+            <div class="gia-tri-danh-gia ${esc(danhGiaLoai)}">${esc(danhGia)}</div>
+        </div>
+        ${nhanXet ? `<div class="phan-ket-qua"><h4>💬 Nhận xét</h4><div class="noi-dung-ket-qua">${esc(nhanXet)}</div></div>` : ""}
+        ${loiHoacThieu ? `<div class="phan-ket-qua"><h4>❌ Lỗi hoặc ý thiếu</h4><div class="noi-dung-ket-qua">${esc(loiHoacThieu)}</div></div>` : ""}
+        ${banDichGoiY ? `<div class="phan-ket-qua phan-ban-dich-mau"><h4>📖 Bản dịch gợi ý</h4><div class="noi-dung-ket-qua noi-dung-ban-dich-mau">${esc(banDichGoiY)}</div></div>` : ""}
+        ${goiYCaiThien ? `<div class="phan-ket-qua"><h4>💡 Gợi ý cải thiện</h4><div class="noi-dung-ket-qua">${esc(goiYCaiThien)}</div></div>` : ""}
+    </div>` : "";
+
+    return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dịch đoạn văn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/dich-doan-van.css">
+    <link rel="stylesheet" href="/css/dich-doan-van-tu-vung.css">
+</head>
+<body>
+<div class="dich-doan-van">
+    <div class="khung">
+        <div class="tieu-de">
+            <div class="icon">📝</div>
+            <h1>DỊCH ĐOẠN VĂN</h1>
+            <p>Luyện dịch tiếng Anh bằng những từ vựng bạn đang học</p>
+        </div>
+        <div class="hanh-dong text-start">
+            <form method="post" action="/dich-doan-van" id="formTaoDoanVan">
+                <div class="card-chon-bo p-3 mb-3 border rounded-3 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <label class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                            <span>📚</span> <span>Chọn các bộ từ vựng để tạo đoạn văn:</span>
+                        </label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="chonTatCaBo(true)">✅ Chọn tất cả</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="chonTatCaBo(false)">❌ Bỏ chọn</button>
+                        </div>
+                    </div>
+                    ${boGridHtml}
+                </div>
+                <button type="submit" class="btn-bat-dau" id="btnTaoDoanVan">✨ Tạo đoạn văn luyện dịch</button>
+            </form>
+        </div>
+        ${loiHtml}
+        ${khungChiaDoiHtml}
+        ${ketQuaBanDichHtml}
+        ${ketQuaGeminiHtml}
+        <div class="quay-lai"><a href="/">← Quay lại trang chủ</a></div>
+    </div>
+</div>
+<script>
+    const tuVungTrongCSDL = ${JSON.stringify(tuVungTuCSDL || [])};
+</script>
+<script src="/js/global-audio.js?v=1"></script>
+<script src="/js/dich-doan-van.js?v=2"></script>
+</body>
+</html>`;
+}
+
+// 15. Render dien-cho-trong.html
+export function renderDienChoTrong({ dsBo = [], boIdChon = null, tongSoTu = 0, loi = null, doanVanRaw = null }) {
+    let html = TEMPLATES["dien-cho-trong"];
+    const opts = `<option value="" ${!boIdChon ? "selected" : ""}>-- Toàn bộ từ vựng của tôi (${tongSoTu} từ) --</option>` +
+        dsBo.map(b => `<option value="${b.id}" ${Number(boIdChon) === Number(b.id) ? "selected" : ""}>${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("");
+    html = html.replace(/<select name="boId" id="boId"[\s\S]*?<\/select>/, `<select name="boId" id="boId" class="form-select select-bo">${opts}</select>`);
+    if (loi) {
+        html = html.replace(/<div class="alert alert-danger[\s\S]*?<\/div>/, `<div class="alert alert-danger shadow-sm rounded-3">${esc(loi)}</div>`);
+    } else {
+        html = html.replace(/<div class="alert alert-danger[\s\S]*?<\/div>/, "");
+    }
+    if (doanVanRaw) {
+        html = html.replace(/<div id="dataDoanVanRaw"[^>]*><\/div>/, `<div id="dataDoanVanRaw" style="display: none;">${esc(doanVanRaw)}</div>`);
+    } else {
+        html = html.replace(/<div class="card-box exercise-box" id="exerciseBox"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<!-- Bootstrap/, `</div></div><!-- Bootstrap`);
+    }
+    return html;
+}
+
+// 16. Render nghe-dien.html & nghe-viet-nghia.html
+export function renderNgheDien({ tplName = "nghe-dien", dsBo = [], boIdChon = null, tongSoTu = 0, soCauChon = 15, capDoChon = 1, hinhThucChon = "CAU", loi = null, rawCauNgheDien = null }) {
+    let html = TEMPLATES[tplName];
+    const opts = `<option value="" ${!boIdChon ? "selected" : ""}>-- Toàn bộ từ vựng (${tongSoTu} từ) --</option>` +
+        dsBo.map(b => `<option value="${b.id}" ${Number(boIdChon) === Number(b.id) ? "selected" : ""}>${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("");
+    html = html.replace(/<select name="boId" id="boId"[\s\S]*?<\/select>/, `<select name="boId" id="boId" class="form-select select-bo">${opts}</select>`);
+    if (loi) {
+        html = html.replace(/<div class="alert alert-danger[\s\S]*?<\/div>/, `<div class="alert alert-danger shadow-sm rounded-3">${esc(loi)}</div>`);
+    } else {
+        html = html.replace(/<div class="alert alert-danger[\s\S]*?<\/div>/, "");
+    }
+    if (rawCauNgheDien) {
+        html = html.replace(/<div id="dataRawCauNgheDien"[^>]*><\/div>/, `<div id="dataRawCauNgheDien" style="display: none;">${esc(rawCauNgheDien)}</div>`);
+        html = html.replace(/<div id="dataHinhThucChon"[^>]*><\/div>/, `<div id="dataHinhThucChon" style="display: none;">${esc(hinhThucChon)}</div>`);
+    } else {
+        html = html.replace(/<div class="card-box exercise-box" id="exerciseBox"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<!-- Bootstrap/, `</div></div><!-- Bootstrap`);
+    }
+    return html;
+}
+
+// 17. Render luyen-noi.html
+export function renderLuyenNoi({ dsBo = [], boIdChon = null, kieuHocChon = "NGAU_NHIEN", tongSoTu = 0, loi = null, dsLuyen = null }) {
+    let html = TEMPLATES["luyen-noi"];
+    const opts = dsBo.map(b => `<option value="${b.id}" ${Number(boIdChon) === Number(b.id) ? "selected" : ""}>${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("");
+    html = html.replace(/<option th:each="bo : \$\{dsBo\}"[\s\S]*?<\/option>/g, opts);
+    if (loi) {
+        html = html.replace(/<div class="alert alert-danger[\s\S]*?<\/div>/, `<div class="alert alert-danger shadow-sm rounded-3 text-center">${esc(loi)}</div>`);
+    } else {
+        html = html.replace(/<div class="alert alert-danger[\s\S]*?<\/div>/, "");
+    }
+    if (dsLuyen && Array.isArray(dsLuyen) && dsLuyen.length > 0) {
+        html = html.replace(/<div class="card-box mb-4" id="setupCard"[\s\S]*?<\/form>\s*<\/div>/, "");
+        html = html.replace(/window\.danhSachTuLuyenNoi\s*=\s*[\s\S]*?;/, `window.danhSachTuLuyenNoi = ${JSON.stringify(dsLuyen)};`);
+    } else {
+        html = html.replace(/<div class="card-box practice-room" id="practiceRoom"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<!-- Bootstrap/, `</div></div><!-- Bootstrap`);
+    }
+    return html;
+}
+
+// 18. Render generic templates (so-do-danh-van, toeic-part2, toeic-part5, etc.)
 export function renderGenericTemplate(name, dsBo = [], tongSoTu = 0, extra = {}) {
     let html = TEMPLATES[name] || "";
     if (dsBo && dsBo.length > 0) {
@@ -501,12 +685,7 @@ export function renderGenericTemplate(name, dsBo = [], tongSoTu = 0, extra = {})
     }
     html = html.replace(/<span[^>]*th:text="\$\{tongSoTu\}"[^>]*>0<\/span>/g, `<span>${tongSoTu}</span>`);
     html = html.replace(/<strong[^>]*th:text="\$\{tongSoTu\}"[^>]*>0<\/strong>/g, `<strong>${tongSoTu}</strong>`);
-    if (extra.doanVanRaw) {
-        html = html.replace(/th:text="\$\{doanVanRaw\}"/, `>${esc(extra.doanVanRaw)}<`);
-    }
-    if (extra.rawCauNgheDien) {
-        html = html.replace(/th:text="\$\{rawCauNgheDien\}"/, `>${esc(extra.rawCauNgheDien)}<`);
-    }
     return html;
 }
+
 
