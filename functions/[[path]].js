@@ -114,8 +114,16 @@ const BROWSER_GEMINI_BRIDGE = `<script>
         const data = await clone.json();
         if (data && data.__needClientGemini) {
           const aiText = await window.__callGeminiFromBrowser(data.prompt, data.jsonMode, data.inlineData);
+          await origFetch("/api/gemini-cache", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: aiText })
+          });
           const newHeaders = new Headers((init && init.headers) || {});
-          newHeaders.set("X-Client-Ai-Result", encodeURIComponent(aiText));
+          const enc = encodeURIComponent(aiText);
+          if (enc.length < 3000) {
+            newHeaders.set("X-Client-Ai-Result", enc);
+          }
           return await origFetch.call(this, input, Object.assign({}, init || {}, { headers: newHeaders }));
         }
       }
@@ -124,6 +132,53 @@ const BROWSER_GEMINI_BRIDGE = `<script>
   };
 })();
 </script>`;
+
+function escAttr(s) {
+    return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function renderClientGeminiFormRelay(actionUrl, entries, payload) {
+    const hiddenInputs = (entries || []).map(e =>
+        `<input type="hidden" name="${escAttr(e.name)}" value="${escAttr(e.value)}">`
+    ).join("\n");
+    return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang xử lý AI Gemini...</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="card shadow-sm border-0 p-4 text-center" style="max-width: 460px; border-radius: 18px;">
+        <div class="spinner-border text-primary mx-auto mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h5 class="fw-bold text-dark mb-2">🤖 AI Gemini đang tạo nội dung...</h5>
+        <p class="text-muted small mb-0">Hệ thống đang tổng hợp dữ liệu từ bộ từ vựng của bạn, vui lòng đợi trong giây lát...</p>
+    </div>
+    <form id="geminiRelayForm" method="POST" action="${escAttr(actionUrl)}" style="display:none;">
+        ${hiddenInputs}
+        <textarea name="_aiResult" id="_aiResultField"></textarea>
+    </form>
+    <script>
+    (async function(){
+        const payload = ${JSON.stringify(payload || {})};
+        try {
+            const res = await window.__callGeminiFromBrowser(payload.prompt, payload.jsonMode, payload.inlineData);
+            document.getElementById("_aiResultField").value = res;
+            document.getElementById("geminiRelayForm").submit();
+        } catch (err) {
+            alert("Lỗi kết nối AI: " + err.message);
+            window.history.back();
+        }
+    })();
+    </script>
+</body>
+</html>`;
+}
 
 function htmlResponse(html, sid = null, status = 200) {
     const headers = new Headers({
@@ -169,15 +224,10 @@ function shuffleArray(arr) {
 
 export async function onRequest(context) {
     const { request, env } = context;
-    const clientAiHeader = request.headers.get("X-Client-Ai-Result");
-    if (clientAiHeader && env) {
-        try {
-            env.__clientAiResult = decodeURIComponent(clientAiHeader);
-        } catch (e) {}
-    }
     const url = new URL(request.url);
     const pathname = url.pathname;
     const method = request.method.toUpperCase();
+    const reqClone = (method === "POST") ? request.clone() : null;
 
     // 1. Static Assets pass-through (/css/*, /js/*, /images/*, /favicon.ico)
     if (
@@ -193,7 +243,6 @@ export async function onRequest(context) {
     if (pathname === "/audio/phat" || pathname === "/audio/tts" || pathname.startsWith("/audio/tu-vung/")) {
         let text = url.searchParams.get("text") || "";
         if (!text && pathname.startsWith("/audio/tu-vung/")) {
-            // Try static asset first
             try {
                 const assetRes = await env.ASSETS.fetch(request);
                 if (assetRes && assetRes.ok) return assetRes;
@@ -225,6 +274,72 @@ export async function onRequest(context) {
     const sid = sessionObj.sid;
     const session = sessionObj.data;
     const taiKhoan = session.taiKhoan || null;
+
+    if (pathname === "/api/gemini-cache" && method === "POST") {
+        try {
+            const body = await request.json();
+            session.__aiCache = body.text || "";
+            await saveSession(env, sid, session);
+            return jsonResponse({ ok: true }, 200, sid);
+        } catch (e) {
+            return jsonResponse({ ok: false }, 400, sid);
+        }
+    }
+
+    if (session.__aiCache) {
+        env.__clientAiResult = session.__aiCache;
+        delete session.__aiCache;
+        await saveSession(env, sid, session);
+    }
+
+    const clientAiHeader = request.headers.get("X-Client-Ai-Result");
+    if (clientAiHeader && env) {
+        try {
+            env.__clientAiResult = decodeURIComponent(clientAiHeader);
+        } catch (e) {}
+    }
+
+    const ctHeader = (request.headers.get("content-type") || "").toLowerCase();
+    if (reqClone && (ctHeader.includes("application/x-www-form-urlencoded") || ctHeader.includes("multipart/form-data"))) {
+        try {
+            const peekFd = await reqClone.clone().formData();
+            const formAiRes = peekFd.get("_aiResult");
+            if (formAiRes && typeof formAiRes === "string") {
+                env.__clientAiResult = formAiRes;
+            }
+        } catch (e) {}
+    }
+
+    try {
+        return await handleRouteRequest({ request, env, url, pathname, method, sid, session, taiKhoan });
+    } catch (err) {
+        if (err && err.isNeedClientGemini) {
+            if (pathname.startsWith("/api/") || pathname === "/dich-doan-van/nghia" || method === "GET" || (request.headers.get("accept") || "").includes("application/json")) {
+                return jsonResponse({
+                    __needClientGemini: true,
+                    prompt: err.geminiPayload.prompt,
+                    jsonMode: err.geminiPayload.jsonMode,
+                    inlineData: err.geminiPayload.inlineData
+                }, 200, sid);
+            }
+            const entries = [];
+            if (reqClone) {
+                try {
+                    const fd = await reqClone.formData();
+                    for (const [k, v] of fd.entries()) {
+                        if (k !== "_aiResult" && typeof v === "string") {
+                            entries.push({ name: k, value: v });
+                        }
+                    }
+                } catch (e) {}
+            }
+            return htmlResponse(renderClientGeminiFormRelay(pathname, entries, err.geminiPayload), sid);
+        }
+        return jsonResponse({ error: "Lỗi xử lý: " + (err.message || String(err)) }, 500, sid);
+    }
+}
+
+async function handleRouteRequest({ request, env, url, pathname, method, sid, session, taiKhoan }) {
 
     // =========================================================
     // AUTH ROUTES (/dangnhap, /dangky, /dangxuat)
@@ -258,6 +373,7 @@ export async function onRequest(context) {
                     return htmlResponse(renderDangNhap("Tên đăng nhập hoặc mật khẩu không đúng"), sid);
                 }
             } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
                 return htmlResponse(renderDangNhap("Lỗi kết nối dữ liệu: " + (err.message || "Vui lòng thử lại")), sid);
             }
         }
@@ -286,6 +402,7 @@ export async function onRequest(context) {
                 );
                 return redirectResponse("/dangnhap", sid);
             } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
                 return htmlResponse(renderDangKy("Lỗi đăng ký: " + (err.message || "Vui lòng thử lại")), sid);
             }
         }
@@ -341,6 +458,7 @@ export async function onRequest(context) {
             const ds = await taoBoDeToeicPart2(env, soCau);
             return jsonResponse(ds, 200, sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return jsonResponse({ error: "Lỗi tạo đề AI: " + err.message }, 500, sid);
         }
     }
@@ -576,6 +694,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             }
             return jsonResponse(ketQuaChuan, 200, sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return new Response("Lỗi AI đề xuất chủ đề: " + (err.message || "Vui lòng thử lại"), {
                 status: 500,
                 headers: { "Content-Type": "text/plain; charset=UTF-8" }
@@ -783,6 +902,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             dto.anhUrl = `data:${contentType};base64,${base64}`;
             return jsonResponse(dto, 200, sid);
         } catch (e) {
+            if (e && e.isNeedClientGemini) throw e;
             return jsonResponse({ error: "Lỗi phân tích ảnh: " + e.message }, 500, sid);
         }
     }
@@ -793,6 +913,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             const ketQua = await chamDiemDeQ79(env, reqBody);
             return jsonResponse(ketQua, 200, sid);
         } catch (e) {
+            if (e && e.isNeedClientGemini) throw e;
             return jsonResponse({ error: "Lỗi chấm điểm AI: " + e.message }, 500, sid);
         }
     }
@@ -812,6 +933,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             dto.thoiGianCau3 = 30;
             return jsonResponse(dto, 200, sid);
         } catch (e) {
+            if (e && e.isNeedClientGemini) throw e;
             return jsonResponse({ error: "Lỗi tạo đề từ văn bản: " + e.message }, 500, sid);
         }
     }
@@ -826,6 +948,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             dto.thoiGianCau3 = 30;
             return jsonResponse(dto, 200, sid);
         } catch (e) {
+            if (e && e.isNeedClientGemini) throw e;
             return jsonResponse({ error: "Lỗi AI sinh đề tự động: " + e.message }, 500, sid);
         }
     }
@@ -1032,6 +1155,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             const ketQua = await traTuChuyenSau(env, text, mode, quickMode);
             return jsonResponse(ketQua, 200, sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return jsonResponse({
                 thanhCong: false,
                 thongBaoLoi: "Lỗi tra từ: " + err.message
@@ -1072,6 +1196,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
                 tenBo
             }, 200, sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return jsonResponse({ success: false, message: "Lỗi khi lưu từ: " + err.message }, 200, sid);
         }
     }
@@ -1112,6 +1237,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
                 thongBao: dsTu.length > 0 ? `Đã trích xuất thành công ${dsTu.length} từ vựng!` : "Không tìm thấy từ vựng tiếng Anh nào trong tệp này!"
             }, 200, sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return jsonResponse({ thanhCong: false, thongBao: "Lỗi xử lý file: " + err.message }, 200, sid);
         }
     }
@@ -1175,6 +1301,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
                 tuVungTuCSDL
             }), sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return htmlResponse(renderDichDoanVan({
                 dsBo,
                 boIdsChon: boIds,
@@ -1242,6 +1369,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
                 tuVungTuCSDL
             }), sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return htmlResponse(renderDichDoanVan({
                 dsBo,
                 boIdsChon: boIds,
@@ -1284,6 +1412,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             const doanVanRaw = await taoDoanVanDienTu(env, danhSachTu);
             return htmlResponse(renderDienChoTrong({ dsBo, boIdChon: boId, tongSoTu: dsTu.length, doanVanRaw }), sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return htmlResponse(renderDienChoTrong({ dsBo, boIdChon: boId, tongSoTu: dsTu.length, loi: "Lỗi AI tạo bài tập: " + err.message }), sid);
         }
     }
@@ -1352,6 +1481,7 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
                 rawCauNgheDien
             }), sid);
         } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
             return htmlResponse(renderNgheDien({
                 tplName, dsBo, boIdChon: boId, tongSoTu: dsTu.length, soCauChon: soCau, capDoChon: capDo, hinhThucChon: hinhThuc,
                 loi: "Lỗi AI tạo câu nghe: " + err.message

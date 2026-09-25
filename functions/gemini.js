@@ -78,7 +78,7 @@ export async function callGemini(env, prompt, jsonMode = false, inlineData = nul
     const keys = Array.from(new Set([...DEFAULT_GEMINI_KEYS, ...envKeys]));
 
     let lastErr = null;
-    const maxServerAttempts = Math.min(2, keys.length);
+    const maxServerAttempts = Math.min(1, keys.length);
     for (const model of MODELS) {
         for (let attempt = 0; attempt < maxServerAttempts; attempt++) {
             const idx = keyCursor % keys.length;
@@ -113,7 +113,7 @@ export async function callGemini(env, prompt, jsonMode = false, inlineData = nul
                     const errTxt = await resp.text();
                     lastErr = new Error(`Gemini HTTP ${resp.status}: ${errTxt.slice(0, 120)}`);
                     if (resp.status === 429) {
-                        // Edge region (e.g. HKG) is rate-limited/blocked by Google -> break immediately to fallback
+                        // Edge region (e.g. HKG) is rate-limited/blocked by Google -> delegate to browser in Vietnam
                         break;
                     }
                     continue;
@@ -127,15 +127,6 @@ export async function callGemini(env, prompt, jsonMode = false, inlineData = nul
             } catch (e) {
                 lastErr = e;
             }
-        }
-    }
-
-    // If inlineData is not audio (i.e. text, JSON, or image), use server-side OpenAI-compatible fallback immediately so HKG 429 never fails!
-    if (!inlineData || !inlineData.mimeType || !inlineData.mimeType.startsWith("audio/")) {
-        try {
-            return await callOpenAiFallback(prompt, jsonMode, inlineData);
-        } catch (fbErr) {
-            // If fallback also fails, continue to client relay
         }
     }
 
@@ -380,7 +371,9 @@ export async function dichAnhViet(text, env = null) {
             if (aiTrans && aiTrans.trim()) {
                 return aiTrans.trim().replace(/^["']|["']$/g, "");
             }
-        } catch (e) {}
+        } catch (e) {
+            if (e && e.isNeedClientGemini) throw e;
+        }
     }
     return "";
 }
@@ -424,7 +417,9 @@ export async function layTuDienAnh(word, env = null) {
                 if (obj.tiengViet) tiengViet = obj.tiengViet;
                 if (!phienAm && obj.phienAm) phienAm = obj.phienAm;
                 if (!viDu && obj.viDu) viDu = obj.viDu;
-            } catch (e) {}
+            } catch (e) {
+                if (e && e.isNeedClientGemini) throw e;
+            }
         }
     }
 
@@ -518,7 +513,9 @@ BẮT BUỘC trả về đúng mảng JSON theo cấu trúc:
                     }
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            if (e && e.isNeedClientGemini) throw e;
+        }
     }
 
     return dictResults.map(r => ({
@@ -660,6 +657,7 @@ BẮT BUỘC trả về DUY NHẤT đối tượng JSON hợp lệ theo đúng c
             audioUrl: `/audio/phat?text=${encodeURIComponent(englishTarget)}&lang=en`
         };
     } catch (e) {
+        if (e && e.isNeedClientGemini) throw e;
         const fallback = await layTuDienAnh(text, env);
         return {
             thanhCong: true,
