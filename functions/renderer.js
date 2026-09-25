@@ -48,8 +48,18 @@ export function renderDangKy(loi = null) {
 }
 
 // 3. Render index.html
-export function renderIndex() {
-    return TEMPLATES["index"];
+export function renderIndex(taiKhoan = null) {
+    let html = TEMPLATES["index"];
+    if (taiKhoan) {
+        const tenHienThi = (taiKhoan.hoTen && String(taiKhoan.hoTen).trim())
+            ? String(taiKhoan.hoTen).trim()
+            : String(taiKhoan.tenDangNhap || "Học viên");
+        html = html.replace(
+            /<(strong|span)\s+th:text="\$\{session\.taiKhoan\.hoTen[^"]*\}">[\s\S]*?<\/\1>/g,
+            `<$1>${esc(tenHienThi)}</$1>`
+        );
+    }
+    return html;
 }
 
 // 4. Render ipa.html & so-dem.html

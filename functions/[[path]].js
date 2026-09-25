@@ -182,6 +182,8 @@ function renderClientGeminiFormRelay(actionUrl, entries, payload) {
 </html>`;
 }
 
+let activeTaiKhoan = null;
+
 function htmlResponse(html, sid = null, status = 200) {
     const headers = new Headers({
         "Content-Type": "text/html; charset=UTF-8",
@@ -190,9 +192,21 @@ function htmlResponse(html, sid = null, status = 200) {
     if (sid) {
         headers.append("Set-Cookie", `vocab_sid=${encodeURIComponent(sid)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
     }
-    const injected = (typeof html === "string" && html.includes("</head>"))
-        ? html.replace("</head>", `${BROWSER_GEMINI_BRIDGE}</head>`)
-        : html;
+    let processed = html;
+    if (typeof processed === "string" && activeTaiKhoan) {
+        const tenHienThi = (activeTaiKhoan.hoTen && String(activeTaiKhoan.hoTen).trim())
+            ? String(activeTaiKhoan.hoTen).trim()
+            : String(activeTaiKhoan.tenDangNhap || "Học viên");
+        processed = processed
+            .replace(
+                /<(strong|span)\s+th:text="\$\{session\.taiKhoan\.hoTen[^"]*\}">[\s\S]*?<\/\1>/g,
+                `<$1>${esc(tenHienThi)}</$1>`
+            )
+            .replace(/\s*th:if="\$\{session\.taiKhoan != null\}"/g, "");
+    }
+    const injected = (typeof processed === "string" && processed.includes("</head>"))
+        ? processed.replace("</head>", `${BROWSER_GEMINI_BRIDGE}</head>`)
+        : processed;
     return new Response(injected, { status, headers });
 }
 
@@ -276,6 +290,20 @@ export async function onRequest(context) {
     const sid = sessionObj.sid;
     const session = sessionObj.data;
     const taiKhoan = session.taiKhoan || null;
+    if (taiKhoan && taiKhoan.id && (!taiKhoan.hoTen && !taiKhoan._checkedName)) {
+        try {
+            const uRows = await sqlQuery(env, "SELECT id, ten_dang_nhap, ho_ten, email FROM tai_khoan WHERE id = $1 LIMIT 1", [Number(taiKhoan.id)]);
+            if (uRows.length > 0) {
+                taiKhoan.tenDangNhap = uRows[0].ten_dang_nhap;
+                taiKhoan.hoTen = uRows[0].ho_ten;
+                taiKhoan.email = uRows[0].email;
+                taiKhoan._checkedName = true;
+                session.taiKhoan = taiKhoan;
+                await saveSession(env, sid, session);
+            }
+        } catch (e) {}
+    }
+    activeTaiKhoan = taiKhoan;
 
     if (pathname === "/api/gemini-cache" && method === "POST") {
         try {
@@ -505,7 +533,7 @@ async function handleRouteRequest({ request, env, url, pathname, method, sid, se
     // HOME & STATIC FEATURE PAGES
     // =========================================================
     if (pathname === "/") {
-        return htmlResponse(renderIndex(), sid);
+        return htmlResponse(renderIndex(taiKhoan), sid);
     }
     if (pathname === "/ipa") {
         return htmlResponse(renderIpa(), sid);
