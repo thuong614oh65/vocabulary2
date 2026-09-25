@@ -338,31 +338,34 @@ YÊU CẦU:
 export async function dichAnhViet(text, env = null) {
     const clean = (text || "").trim();
     if (!clean) return "";
-    try {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&dt=bd&q=${encodeURIComponent(clean)}`;
-        const resp = await fetch(url);
-        if (resp.ok) {
-            const data = await resp.json();
-            if (Array.isArray(data) && Array.isArray(data[0])) {
-                const trans = data[0].map(item => item[0]).join("").trim();
-                if (trans && trans.toLowerCase() !== clean.toLowerCase()) {
+    const hasClientAi = Boolean(env && env.__clientAiResult);
+    if (!hasClientAi) {
+        try {
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&dt=bd&q=${encodeURIComponent(clean)}`;
+            const resp = await fetch(url, { signal: AbortSignal.timeout(1800) });
+            if (resp.ok) {
+                const data = await resp.json();
+                if (Array.isArray(data) && Array.isArray(data[0])) {
+                    const trans = data[0].map(item => item[0]).join("").trim();
+                    if (trans && trans.toLowerCase() !== clean.toLowerCase()) {
+                        return trans;
+                    }
+                }
+            }
+        } catch (e) {}
+
+        try {
+            const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=en|vi`;
+            const mmResp = await fetch(mmUrl, { signal: AbortSignal.timeout(1800) });
+            if (mmResp.ok) {
+                const mmData = await mmResp.json();
+                const trans = (mmData?.responseData?.translatedText || "").trim();
+                if (trans && trans.toLowerCase() !== clean.toLowerCase() && !trans.includes("MYMEMORY WARNING")) {
                     return trans;
                 }
             }
-        }
-    } catch (e) {}
-
-    try {
-        const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=en|vi`;
-        const mmResp = await fetch(mmUrl);
-        if (mmResp.ok) {
-            const mmData = await mmResp.json();
-            const trans = (mmData?.responseData?.translatedText || "").trim();
-            if (trans && trans.toLowerCase() !== clean.toLowerCase() && !trans.includes("MYMEMORY WARNING")) {
-                return trans;
-            }
-        }
-    } catch (e) {}
+        } catch (e) {}
+    }
 
     if (env) {
         try {
@@ -382,8 +385,9 @@ export async function layTuDienAnh(word, env = null) {
     const clean = (word || "").trim();
     let phienAm = "";
     let viDu = "";
+    const hasClientAi = Boolean(env && env.__clientAiResult);
     try {
-        const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean.toLowerCase())}`);
+        const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean.toLowerCase())}`, { signal: AbortSignal.timeout(1800) });
         if (resp.ok) {
             const arr = await resp.json();
             if (Array.isArray(arr) && arr.length > 0) {
@@ -408,7 +412,7 @@ export async function layTuDienAnh(word, env = null) {
         }
     } catch (e) {}
 
-    let tiengViet = await dichAnhViet(clean, null);
+    let tiengViet = hasClientAi ? "" : await dichAnhViet(clean, null);
     if (!tiengViet || tiengViet.toLowerCase() === clean.toLowerCase()) {
         if (env) {
             try {
@@ -442,42 +446,45 @@ export async function traTuHangLoat(env, words) {
     }
     const cleanWords = (words || []).map(w => w.trim()).filter(Boolean);
     if (cleanWords.length === 0) return [];
+    const hasClientAi = Boolean(env && env.__clientAiResult);
 
     // 1. Fetch dictionaryapi.dev in parallel for fast IPA/example
     const dictResults = await Promise.all(cleanWords.map(async (clean) => {
         let phienAm = "";
         let viDu = "";
-        try {
-            const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean.toLowerCase())}`);
-            if (resp.ok) {
-                const arr = await resp.json();
-                if (Array.isArray(arr) && arr.length > 0) {
-                    const entry = arr[0];
-                    phienAm = entry.phonetic || "";
-                    if (!phienAm && Array.isArray(entry.phonetics)) {
-                        for (const p of entry.phonetics) {
-                            if (p.text) { phienAm = p.text; break; }
-                        }
-                    }
-                    if (Array.isArray(entry.meanings)) {
-                        for (const m of entry.meanings) {
-                            if (Array.isArray(m.definitions)) {
-                                for (const d of m.definitions) {
-                                    if (d.example) { viDu = d.example; break; }
-                                }
+        if (!hasClientAi) {
+            try {
+                const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean.toLowerCase())}`, { signal: AbortSignal.timeout(1800) });
+                if (resp.ok) {
+                    const arr = await resp.json();
+                    if (Array.isArray(arr) && arr.length > 0) {
+                        const entry = arr[0];
+                        phienAm = entry.phonetic || "";
+                        if (!phienAm && Array.isArray(entry.phonetics)) {
+                            for (const p of entry.phonetics) {
+                                if (p.text) { phienAm = p.text; break; }
                             }
-                            if (viDu) break;
+                        }
+                        if (Array.isArray(entry.meanings)) {
+                            for (const m of entry.meanings) {
+                                if (Array.isArray(m.definitions)) {
+                                    for (const d of m.definitions) {
+                                        if (d.example) { viDu = d.example; break; }
+                                    }
+                                }
+                                if (viDu) break;
+                            }
                         }
                     }
                 }
-            }
-        } catch (e) {}
-        const tiengViet = await dichAnhViet(clean, null);
+            } catch (e) {}
+        }
+        const tiengViet = hasClientAi ? "" : await dichAnhViet(clean, null);
         return { tiengAnh: clean, tiengViet, phienAm, viDu };
     }));
 
     // 2. Check if any word is missing Vietnamese translation, IPA, or example -> enrich via Gemini batch call (like dichHangLoatGemini in Java)
-    const needAi = dictResults.some(r => !r.tiengViet || r.tiengViet.toLowerCase() === r.tiengAnh.toLowerCase() || !r.phienAm || !r.viDu);
+    const needAi = hasClientAi || dictResults.some(r => !r.tiengViet || r.tiengViet.toLowerCase() === r.tiengAnh.toLowerCase() || !r.phienAm || !r.viDu);
     if (needAi) {
         try {
             const prompt = `Bạn là từ điển Anh-Việt chuẩn Oxford. Hãy cung cấp nghĩa tiếng Việt ngắn gọn chính xác nhất, phiên âm quốc tế IPA (đặt trong dấu /.../) và 1 câu ví dụ tiếng Anh thực tế cho danh sách các từ sau:

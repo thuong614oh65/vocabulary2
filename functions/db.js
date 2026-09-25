@@ -57,6 +57,9 @@ export async function getSession(request, env) {
     if (!sid) {
         sid = crypto.randomUUID().replace(/-/g, "");
         isNew = true;
+        const emptyData = {};
+        memorySessions.set(sid, emptyData);
+        return { sid, data: emptyData, isNew };
     }
 
     if (memorySessions.has(sid)) {
