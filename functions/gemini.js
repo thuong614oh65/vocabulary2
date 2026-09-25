@@ -273,20 +273,48 @@ YÊU CẦU:
 // GOOGLE TRANSLATE & FREE DICTIONARY API (FAST BULK LOOKUP)
 // =========================================================
 
-export async function dichAnhViet(text) {
+export async function dichAnhViet(text, env = null) {
+    const clean = (text || "").trim();
+    if (!clean) return "";
     try {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&dt=bd&q=${encodeURIComponent(text)}`;
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&dt=bd&q=${encodeURIComponent(clean)}`;
         const resp = await fetch(url);
-        if (!resp.ok) return "";
-        const data = await resp.json();
-        if (Array.isArray(data) && Array.isArray(data[0])) {
-            return data[0].map(item => item[0]).join("").trim();
+        if (resp.ok) {
+            const data = await resp.json();
+            if (Array.isArray(data) && Array.isArray(data[0])) {
+                const trans = data[0].map(item => item[0]).join("").trim();
+                if (trans && trans.toLowerCase() !== clean.toLowerCase()) {
+                    return trans;
+                }
+            }
         }
     } catch (e) {}
+
+    try {
+        const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=en|vi`;
+        const mmResp = await fetch(mmUrl);
+        if (mmResp.ok) {
+            const mmData = await mmResp.json();
+            const trans = (mmData?.responseData?.translatedText || "").trim();
+            if (trans && trans.toLowerCase() !== clean.toLowerCase() && !trans.includes("MYMEMORY WARNING")) {
+                return trans;
+            }
+        }
+    } catch (e) {}
+
+    if (env) {
+        try {
+            const prompt = `Dịch ngắn gọn từ/cụm từ tiếng Anh sau sang nghĩa tiếng Việt phổ biến và chính xác nhất (chỉ trả về nghĩa tiếng Việt, không giải thích): "${clean}"`;
+            const aiTrans = await callGemini(env, prompt, false);
+            if (aiTrans && aiTrans.trim()) {
+                return aiTrans.trim().replace(/^["']|["']$/g, "");
+            }
+        } catch (e) {}
+    }
     return "";
 }
 
-export async function layTuDienAnh(word) {
+export async function layTuDienAnh(word, env = null) {
     const clean = (word || "").trim();
     let phienAm = "";
     let viDu = "";
@@ -316,7 +344,19 @@ export async function layTuDienAnh(word) {
         }
     } catch (e) {}
 
-    const tiengViet = await dichAnhViet(clean);
+    let tiengViet = await dichAnhViet(clean, env);
+    if (!tiengViet || tiengViet.toLowerCase() === clean.toLowerCase()) {
+        if (env) {
+            try {
+                const raw = await callGemini(env, `Trả về JSON {"tiengViet":"nghĩa tiếng Việt chính xác","phienAm":"IPA chuẩn có dấu /.../","viDu":"1 câu ví dụ tiếng Anh ngắn gọn"} cho từ tiếng Anh: "${clean}"`, true);
+                const obj = JSON.parse(cleanJson(raw));
+                if (obj.tiengViet) tiengViet = obj.tiengViet;
+                if (!phienAm && obj.phienAm) phienAm = obj.phienAm;
+                if (!viDu && obj.viDu) viDu = obj.viDu;
+            } catch (e) {}
+        }
+    }
+
     if (!phienAm) {
         phienAm = "/" + clean.toLowerCase() + "/";
     }
@@ -328,10 +368,246 @@ export async function layTuDienAnh(word) {
     };
 }
 
-export async function traTuHangLoat(words) {
-    const cleanWords = words.map(w => w.trim()).filter(Boolean);
-    const results = await Promise.all(cleanWords.map(w => layTuDienAnh(w)));
-    return results;
+export async function traTuHangLoat(env, words) {
+    // Support both traTuHangLoat(env, words) and legacy traTuHangLoat(words)
+    if (Array.isArray(env) && !words) {
+        words = env;
+        env = null;
+    }
+    const cleanWords = (words || []).map(w => w.trim()).filter(Boolean);
+    if (cleanWords.length === 0) return [];
+
+    // 1. Fetch dictionaryapi.dev in parallel for fast IPA/example
+    const dictResults = await Promise.all(cleanWords.map(async (clean) => {
+        let phienAm = "";
+        let viDu = "";
+        try {
+            const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean.toLowerCase())}`);
+            if (resp.ok) {
+                const arr = await resp.json();
+                if (Array.isArray(arr) && arr.length > 0) {
+                    const entry = arr[0];
+                    phienAm = entry.phonetic || "";
+                    if (!phienAm && Array.isArray(entry.phonetics)) {
+                        for (const p of entry.phonetics) {
+                            if (p.text) { phienAm = p.text; break; }
+                        }
+                    }
+                    if (Array.isArray(entry.meanings)) {
+                        for (const m of entry.meanings) {
+                            if (Array.isArray(m.definitions)) {
+                                for (const d of m.definitions) {
+                                    if (d.example) { viDu = d.example; break; }
+                                }
+                            }
+                            if (viDu) break;
+                        }
+                    }
+                }
+            }
+        } catch (e) {}
+        const tiengViet = await dichAnhViet(clean, null);
+        return { tiengAnh: clean, tiengViet, phienAm, viDu };
+    }));
+
+    // 2. Check if any word is missing Vietnamese translation, IPA, or example -> enrich via Gemini batch call (like dichHangLoatGemini in Java)
+    const needAi = dictResults.some(r => !r.tiengViet || r.tiengViet.toLowerCase() === r.tiengAnh.toLowerCase() || !r.phienAm || !r.viDu);
+    if (needAi) {
+        try {
+            const prompt = `Bạn là từ điển Anh-Việt chuẩn Oxford. Hãy cung cấp nghĩa tiếng Việt ngắn gọn chính xác nhất, phiên âm quốc tế IPA (đặt trong dấu /.../) và 1 câu ví dụ tiếng Anh thực tế cho danh sách các từ sau:
+${JSON.stringify(cleanWords)}
+
+BẮT BUỘC trả về đúng mảng JSON theo cấu trúc:
+[
+  {
+    "tiengAnh": "từ gốc",
+    "tiengViet": "nghĩa tiếng Việt chuẩn (ví dụ: Xin chào)",
+    "phienAm": "/həˈləʊ/",
+    "viDu": "Hello, nice to meet you!"
+  }
+]`;
+            const raw = await callGemini(env, prompt, true);
+            const aiArr = JSON.parse(cleanJson(raw));
+            if (Array.isArray(aiArr)) {
+                const aiMap = new Map();
+                for (const item of aiArr) {
+                    if (item && item.tiengAnh) {
+                        aiMap.set(item.tiengAnh.trim().toLowerCase(), item);
+                    }
+                }
+                for (let i = 0; i < dictResults.length; i++) {
+                    const r = dictResults[i];
+                    const ai = aiMap.get(r.tiengAnh.toLowerCase()) || aiArr[i];
+                    if (ai) {
+                        if (!r.tiengViet || r.tiengViet.toLowerCase() === r.tiengAnh.toLowerCase()) {
+                            r.tiengViet = ai.tiengViet || r.tiengViet;
+                        }
+                        if (!r.phienAm && ai.phienAm) r.phienAm = ai.phienAm;
+                        if (!r.viDu && ai.viDu) r.viDu = ai.viDu;
+                    }
+                }
+            }
+        } catch (e) {}
+    }
+
+    return dictResults.map(r => ({
+        tiengAnh: r.tiengAnh,
+        tiengViet: r.tiengViet || r.tiengAnh,
+        phienAm: r.phienAm || `/${r.tiengAnh.toLowerCase()}/`,
+        viDu: r.viDu || `This is an example with ${r.tiengAnh}.`
+    }));
+}
+
+// =========================================================
+// 7. TRA TỪ CHUYÊN SÂU & DỊCH ĐA CHIỀU (/api/tra-tu/dich)
+// =========================================================
+export function laTiengViet(text) {
+    if (!text) return false;
+    return /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text);
+}
+
+export async function traTuChuyenSau(env, rawText, rawMode = "AUTO", quickMode = false) {
+    const text = (rawText || "").trim();
+    if (!text) {
+        return { thanhCong: false, thongBaoLoi: "Vui lòng nhập từ vựng hoặc câu cần tra cứu!" };
+    }
+
+    let mode = (rawMode || "AUTO").toUpperCase();
+    if (mode !== "EN_VI" && mode !== "VI_EN") {
+        mode = laTiengViet(text) ? "VI_EN" : "EN_VI";
+    }
+    const isEnToVi = mode === "EN_VI";
+
+    if (quickMode) {
+        const info = await layTuDienAnh(text, env);
+        return {
+            thanhCong: true,
+            tuGoc: text,
+            loaiDich: mode,
+            ngonNguNguon: isEnToVi ? "en" : "vi",
+            ngonNguDich: isEnToVi ? "vi" : "en",
+            banDich: info.tiengViet,
+            phienAm: info.phienAm,
+            tuLoai: "Từ vựng",
+            giaiThich: "",
+            cacNghiaKhac: [],
+            dinhNghia: [],
+            viDu: info.viDu ? [{ cauTiengAnh: info.viDu, cauTiengViet: "" }] : [],
+            dongNghia: [],
+            traiNghia: [],
+            audioUrl: `/audio/phat?text=${encodeURIComponent(text)}&lang=en`
+        };
+    }
+
+    const prompt = isEnToVi
+        ? `Bạn là Từ điển Anh - Việt chuyên sâu chuẩn Oxford & Cambridge.
+Hãy phân tích chi tiết từ/cụm từ/câu tiếng Anh sau: "${text}"
+
+BẮT BUỘC trả về DUY NHẤT đối tượng JSON hợp lệ theo đúng cấu trúc sau:
+{
+  "banDich": "Nghĩa tiếng Việt chính xác, tự nhiên và phổ biến nhất (nếu có nhiều nghĩa chính hãy ngăn cách bằng dấu phẩy)",
+  "phienAm": "/phiên âm IPA chuẩn Anh-Mỹ/",
+  "tuLoai": "Từ loại chính (ví dụ: Danh từ (Noun), Động từ (Verb), Tính từ (Adjective)...)",
+  "giaiThich": "Giải thích rõ sắc thái nghĩa, cách dùng thực tế và ngữ cảnh sử dụng bằng tiếng Việt dễ hiểu",
+  "cacNghiaKhac": ["Nghĩa phổ biến thứ 2", "Nghĩa thứ 3", "Nghĩa chuyên ngành (nếu có)"],
+  "dinhNghia": [
+    {
+      "partOfSpeech": "Noun (Danh từ)",
+      "definitionEn": "Định nghĩa chuẩn bằng tiếng Anh",
+      "definitionVi": "Giải nghĩa tiếng Việt tương ứng",
+      "examples": [
+        "Câu ví dụ tiếng Anh 1 (Kèm dịch nghĩa tiếng Việt trong ngoặc)"
+      ]
+    }
+  ],
+  "viDu": [
+    {
+      "cauTiengAnh": "Câu ví dụ tiếng Anh tự nhiên, thực tế 1",
+      "cauTiengViet": "Bản dịch tiếng Việt tương ứng 1"
+    },
+    {
+      "cauTiengAnh": "Câu ví dụ tiếng Anh tự nhiên, thực tế 2",
+      "cauTiengViet": "Bản dịch tiếng Việt tương ứng 2"
+    }
+  ],
+  "dongNghia": ["từ đồng nghĩa 1", "từ đồng nghĩa 2", "từ đồng nghĩa 3"],
+  "traiNghia": ["từ trái nghĩa 1", "từ trái nghĩa 2"]
+}`
+        : `Bạn là Từ điển Việt - Anh chuyên sâu chuẩn Oxford & Cambridge.
+Người học đang muốn tra từ/cụm từ/câu tiếng Việt sau sang tiếng Anh: "${text}"
+
+BẮT BUỘC trả về DUY NHẤT đối tượng JSON hợp lệ theo đúng cấu trúc sau:
+{
+  "banDich": "Từ/cụm từ tiếng Anh chuẩn xác và tự nhiên nhất tương ứng với '${text}'",
+  "phienAm": "/phiên âm IPA chuẩn của từ tiếng Anh tìm được/",
+  "tuLoai": "Từ loại của từ tiếng Anh tìm được (ví dụ: Noun, Verb, Adjective, Idiom...)",
+  "giaiThich": "Giải thích cách dùng từ tiếng Anh này và sự khác biệt giữa các từ tiếng Anh tương đương",
+  "cacNghiaKhac": ["Cách dịch tiếng Anh khác 1", "Cách dịch tiếng Anh khác 2"],
+  "dinhNghia": [
+    {
+      "partOfSpeech": "Cách dùng chính",
+      "definitionEn": "English explanation of the translated expression",
+      "definitionVi": "Giải thích ngữ cảnh sử dụng bằng tiếng Việt",
+      "examples": [
+        "Ví dụ câu tiếng Anh sử dụng từ này (Kèm dịch tiếng Việt)"
+      ]
+    }
+  ],
+  "viDu": [
+    {
+      "cauTiengAnh": "Câu ví dụ tiếng Anh tự nhiên 1",
+      "cauTiengViet": "Bản dịch tiếng Việt 1"
+    },
+    {
+      "cauTiengAnh": "Câu ví dụ tiếng Anh tự nhiên 2",
+      "cauTiengViet": "Bản dịch tiếng Việt 2"
+    }
+  ],
+  "dongNghia": ["từ tiếng Anh đồng nghĩa 1", "từ tiếng Anh đồng nghĩa 2"],
+  "traiNghia": ["từ tiếng Anh trái nghĩa 1", "từ tiếng Anh trái nghĩa 2"]
+}`;
+
+    try {
+        const raw = await callGemini(env, prompt, true);
+        const parsed = JSON.parse(cleanJson(raw));
+        const englishTarget = isEnToVi ? text : (parsed.banDich || text);
+        return {
+            thanhCong: true,
+            tuGoc: text,
+            loaiDich: mode,
+            ngonNguNguon: isEnToVi ? "en" : "vi",
+            ngonNguDich: isEnToVi ? "vi" : "en",
+            banDich: parsed.banDich || text,
+            phienAm: parsed.phienAm || "",
+            tuLoai: parsed.tuLoai || "Từ vựng",
+            giaiThich: parsed.giaiThich || "",
+            cacNghiaKhac: Array.isArray(parsed.cacNghiaKhac) ? parsed.cacNghiaKhac : [],
+            dinhNghia: Array.isArray(parsed.dinhNghia) ? parsed.dinhNghia : [],
+            viDu: Array.isArray(parsed.viDu) ? parsed.viDu : [],
+            dongNghia: Array.isArray(parsed.dongNghia) ? parsed.dongNghia : [],
+            traiNghia: Array.isArray(parsed.traiNghia) ? parsed.traiNghia : [],
+            audioUrl: `/audio/phat?text=${encodeURIComponent(englishTarget)}&lang=en`
+        };
+    } catch (e) {
+        const fallback = await layTuDienAnh(text, env);
+        return {
+            thanhCong: true,
+            tuGoc: text,
+            loaiDich: mode,
+            ngonNguNguon: isEnToVi ? "en" : "vi",
+            ngonNguDich: isEnToVi ? "vi" : "en",
+            banDich: fallback.tiengViet,
+            phienAm: fallback.phienAm,
+            tuLoai: "Từ vựng",
+            giaiThich: "",
+            cacNghiaKhac: [],
+            dinhNghia: [],
+            viDu: fallback.viDu ? [{ cauTiengAnh: fallback.viDu, cauTiengViet: "" }] : [],
+            dongNghia: [],
+            traiNghia: [],
+            audioUrl: `/audio/phat?text=${encodeURIComponent(text)}&lang=en`
+        };
+    }
 }
 
 // =========================================================
@@ -435,85 +711,206 @@ function chuyenSangDocBoi(syl) {
 }
 
 // =========================================================
-// TOEIC SPEAKING Q7-9 AI GRADING (/api/luyen-de/cham-diem)
+// TOEIC SPEAKING Q7-9 AI GENERATION & GRADING (/api/luyen-de/*)
 // =========================================================
 
-export async function chamDiemDeQ79(env, req) {
-    const prompt = `Bạn là Giám khảo chấm thi TOEIC Speaking Parts Q7-9 chuẩn ETS.
-Hãy chấm điểm cực nhanh và chính xác cho bài làm dưới đây.
+export async function taoDeQ79TuHinhAnh(env, base64Data, mimeType) {
+    const prompt = `Ban la chuyen gia ra de thi TOEIC Speaking Part 4 (Respond to questions using information provided - Questions 7, 8, 9).
+Hay doc ky hinh anh de bai duoc cung cap (lich trinh, hoi nghi, hoa don, CV, lich bay, tour...) va trich xuat toan bo noi dung + 3 cau hoi Q7, Q8, Q9.
+Neu trong hinh anh CHUA co san 3 cau hoi Q7-9, hay TU TAO 3 cau hoi bam sat 100% du lieu trong hinh anh theo dung chuan TOEIC Speaking:
+- Question 7 (15s): Hoi thong tin cu the (thoi gian, dia diem, gia ve, nguoi phu trach...).
+- Question 8 (15s): Hoi xac nhan mot thong tin bi hieu nham (Yes/No/Actually + sua lai thong tin dung).
+- Question 9 (30s): Hoi tong hop toan bo cac su kien/hoat dong thoa man mot dieu kien (buoi chieu, ngay cu the, cua mot dien gia...).
 
-TIÊU ĐỀ BẢNG THÔNG TIN: ${req.tieuDe || ""}
-NỘI DUNG BẢNG THÔNG TIN ĐỀ BÀI:
-${req.thongTinDeBai || ""}
-
-TÌNH HUỐNG: ${req.tinhHuong || ""}
-
-CÂU HỎI 7 (15s): ${req.cauHoi1 || ""}
-TRẢ LỜI CỦA HỌC VIÊN CÂU 7: ${req.cauTraLoi1 || "(Bỏ trống)"}
-
-CÂU HỎI 8 (15s): ${req.cauHoi2 || ""}
-TRẢ LỜI CỦA HỌC VIÊN CÂU 8: ${req.cauTraLoi2 || "(Bỏ trống)"}
-
-CÂU HỎI 9 (30s): ${req.cauHoi3 || ""}
-TRẢ LỜI CỦA HỌC VIÊN CÂU 9: ${req.cauTraLoi3 || "(Bỏ trống)"}
-
-YÊU CẦU QUAN TRỌNG VỀ "trichDanDeBai" VÀ "huongDanChemTu":
-1. "trichDanDeBai": Copy Y HỆT nguyên văn dòng dữ liệu trong bảng đề bài cần dùng để trả lời câu hỏi này (Ví dụ: "May 29 | 9:00 a.m. - 11:00 a.m. | Visit to main drilling site | Walterenz"). KHÔNG giải thích dài dòng.
-2. "huongDanChemTu": Viết lại chính dòng đề bài đó và đặt các từ chêm thêm vào trong ngoặc vuông [...] để tạo thành câu hoàn chỉnh đọc lên là ăn điểm ngay mà KHÔNG CẦN suy luận lý thuyết (Ví dụ: "[On] May 29 [from] 9:00 a.m. [to] 11:00 a.m., [there will be a] visit to [the] main drilling site [led by] Walterenz.").
-3. "suaCauNguoiDung": Sửa trực tiếp câu trả lời của học viên thành câu hoàn chỉnh, đúng ngữ pháp.
-
-Trả về đúng định dạng JSON sau:
+BAT BUOC tra ve DUY NHAT 1 doi tuong JSON theo dung cau truc:
 {
-  "tongDiem": 160,
-  "mucDiem": "Level 7 (Good - 160/200)",
-  "nhanXetChung": "Nhận xét tổng quan ngắn gọn",
-  "cau1": {
-    "soCau": 7,
-    "cauHoi": "${(req.cauHoi1 || "").replace(/"/g, '\\"')}",
-    "cauTraLoiNguoiDung": "${(req.cauTraLoi1 || "").replace(/"/g, '\\"')}",
-    "diemSo": 3,
-    "diemToiDa": 3,
-    "danhGia": "Đúng / Khá tốt / Cần cải thiện",
-    "trichDanDeBai": "Dòng dữ liệu gốc y hệt trong đề",
-    "huongDanChemTu": "Câu ghép trực tiếp từ dòng đề bằng cách đặt từ chêm trong ngoặc vuông [như thế này]",
-    "suaCauNguoiDung": "Câu của học viên đã được sửa lại chuẩn ngữ pháp",
-    "giaiThichSuaCau": "Giải thích ngắn gọn lỗi sai đã sửa",
-    "nhanXetChiTiet": "Nhận xét ngắn gọn",
-    "dapAnMau": "Câu trả lời mẫu chuẩn TOEIC Speaking",
-    "dichNghiaDapAnMau": "Dịch nghĩa câu trả lời mẫu sang tiếng Việt"
-  },
-  "cau2": {
-    "soCau": 8,
-    "cauHoi": "${(req.cauHoi2 || "").replace(/"/g, '\\"')}",
-    "cauTraLoiNguoiDung": "${(req.cauTraLoi2 || "").replace(/"/g, '\\"')}",
-    "diemSo": 3,
-    "diemToiDa": 3,
-    "danhGia": "Đúng / Khá tốt / Cần cải thiện",
-    "trichDanDeBai": "...",
-    "huongDanChemTu": "...",
-    "suaCauNguoiDung": "...",
-    "giaiThichSuaCau": "...",
-    "nhanXetChiTiet": "...",
-    "dapAnMau": "...",
-    "dichNghiaDapAnMau": "..."
-  },
-  "cau3": {
-    "soCau": 9,
-    "cauHoi": "${(req.cauHoi3 || "").replace(/"/g, '\\"')}",
-    "cauTraLoiNguoiDung": "${(req.cauTraLoi3 || "").replace(/"/g, '\\"')}",
-    "diemSo": 3,
-    "diemToiDa": 3,
-    "danhGia": "Đúng / Khá tốt / Cần cải thiện",
-    "trichDanDeBai": "...",
-    "huongDanChemTu": "...",
-    "suaCauNguoiDung": "...",
-    "giaiThichSuaCau": "...",
-    "nhanXetChiTiet": "...",
-    "dapAnMau": "...",
-    "dichNghiaDapAnMau": "..."
-  }
+  "tieuDe": "Tieu de bang thong tin tieng Anh",
+  "vanBanThongTin": "Toan bo noi dung bang thong tin duoc trinh bay ro rang, co xuong dong",
+  "tomTatNoiDung": "Tom tat ngan gon bang tieng Viet",
+  "tinhHuong": "Doan gioi thieu tinh huong bang tieng Anh",
+  "cauHoi1": "Noi dung Question 7 bang tieng Anh",
+  "goiYCau1": "Goi y cach tra loi Question 7 bang tieng Viet",
+  "cauHoi2": "Noi dung Question 8 bang tieng Anh",
+  "goiYCau2": "Goi y cach tra loi Question 8 bang tieng Viet",
+  "cauHoi3": "Noi dung Question 9 bang tieng Anh",
+  "goiYCau3": "Goi y cach tra loi Question 9 bang tieng Viet"
+}`;
+    const raw = await callGemini(env, prompt, true, { data: base64Data, mimeType: mimeType || "image/jpeg" });
+    return JSON.parse(cleanJson(raw));
+}
+
+export async function taoDeQ79TuVanBan(env, vanBan) {
+    const prompt = `Ban la chuyen gia ra de thi TOEIC Speaking Questions 7-9.
+Hay dua vao van ban thong tin duoi day de thiet ke 1 bo de thi TOEIC Speaking Q7-9 chuan ETS:
+
+${vanBan}
+
+BAT BUOC tra ve DUY NHAT 1 doi tuong JSON theo dung cau truc:
+{
+  "tieuDe": "Tieu de bang thong tin tieng Anh",
+  "vanBanThongTin": "Noi dung bang thong tin",
+  "tomTatNoiDung": "Tom tat ngan gon bang tieng Viet",
+  "tinhHuong": "Hello, I am calling about...",
+  "cauHoi1": "Noi dung Question 7 (15s)",
+  "goiYCau1": "Goi y cach tra loi Question 7 bang tieng Viet",
+  "cauHoi2": "Noi dung Question 8 (15s)",
+  "goiYCau2": "Goi y cach tra loi Question 8 bang tieng Viet",
+  "cauHoi3": "Noi dung Question 9 (30s)",
+  "goiYCau3": "Goi y cach tra loi Question 9 bang tieng Viet"
+}`;
+    const raw = await callGemini(env, prompt, true);
+    return JSON.parse(cleanJson(raw));
+}
+
+export async function taoDeQ79TuDong(env) {
+    const prompt = `Ban la chuyen gia ra de thi TOEIC Speaking Questions 7-9 chuan ETS.
+Hay tu sang tao 1 de thi TOEIC Speaking Q7-9 HOAN TOAN MOI (chu de: lich trinh hoi nghi, lich dao tao nhan vien, tour du lich, chuong trinh su kien, hoac lich phong van).
+BAT BUOC tra ve DUY NHAT 1 doi tuong JSON theo dung cau truc:
+{
+  "tieuDe": "Tieu de bang thong tin tieng Anh",
+  "vanBanThongTin": "Bang thong tin chi tiet bang tieng Anh (co gio giac, hoat dong, nguoi phu trach, ghi chu * hoac **)",
+  "tomTatNoiDung": "Tom tat ngan gon bang tieng Viet",
+  "tinhHuong": "Hello, I am calling about...",
+  "cauHoi1": "Noi dung Question 7 (15s)",
+  "goiYCau1": "Goi y cach tra loi Question 7 bang tieng Viet",
+  "cauHoi2": "Noi dung Question 8 (15s)",
+  "goiYCau2": "Goi y cach tra loi Question 8 bang tieng Viet",
+  "cauHoi3": "Noi dung Question 9 (30s)",
+  "goiYCau3": "Goi y cach tra loi Question 9 bang tieng Viet"
+}`;
+    const raw = await callGemini(env, prompt, true);
+    return JSON.parse(cleanJson(raw));
+}
+
+export async function chamDiemDeQ79(env, req) {
+    const tieuDe = req.tieuDe || "";
+    const thongTin = req.thongTinDeBai || req.vanBanThongTin || "";
+    const tinhHuong = req.tinhHuong || "";
+    const q1 = req.cauHoi1 || "";
+    const a1 = req.cauTraLoi1 || req.traLoi1 || "";
+    const q2 = req.cauHoi2 || "";
+    const a2 = req.cauTraLoi2 || req.traLoi2 || "";
+    const q3 = req.cauHoi3 || "";
+    const a3 = req.cauTraLoi3 || req.traLoi3 || "";
+
+    const prompt = `Ban la Giam khao cham thi TOEIC Speaking (Questions 7, 8, 9) chuan quoc te ETS.
+Hay cham diem cuc ky chi tiet, khach quan cho bai lam cua thi sinh.
+
+THONG TIN DE BAI:
+- Tieu de: ${tieuDe}
+- Noi dung bang thong tin:
+${thongTin}
+- Tinh huong: ${tinhHuong}
+
+BAI LAM CUA THI SINH:
+1. Question 7 (Quy dinh: 15 giay):
+- Cau hoi: ${q1}
+- Cau tra loi cua thi sinh: "${a1}"
+
+2. Question 8 (Quy dinh: 15 giay):
+- Cau hoi: ${q2}
+- Cau tra loi cua thi sinh: "${a2}"
+
+3. Question 9 (Quy dinh: 30 giay):
+- Cau hoi: ${q3}
+- Cau tra loi cua thi sinh: "${a3}"
+
+QUY TAC CHAM DIEM & HUONG DAN CHEM TU TRUC TIEP TU DE BAI (CUC KY QUAN TRONG):
+- Nguoi hoc muon nhin vao DONG DU LIEU GOC TRONG DE BAI va biet cach CHEM THEM TU (gioi tu, dong tu to be, chu ngu...) de doc thanh cau hoan chinh an diem ngay ma KHONG CAN suy luan phuc tap.
+- O truong "trichDanDeBai": Hay trich xuat Y HET NGUYEN VAN dong thong tin trong de bai chua dap an cua cau hoi do.
+- O truong "huongDanChemTu": Hay viet lai chinh dong thong tin trong de bai do, nhung DAT CAC TU CHEM THEM TRONG DAU NGOAC VUONG [...] de bien cum tu roi rac trong bang thanh cau tieng Anh hoan chinh (Vi du: "[On] May 29, [from] 9:00 a.m. [to] 11:00 a.m., [there will be a] Visit to main drilling site [led by] Walterenz.").
+- O truong "suaCauNguoiDung": Neu thi sinh co nhap cau tra loi, hay sua truc tiep cau cua thi sinh thanh cau dung ngu phap va tu nhien nhat. Neu thi sinh bo trong, ghi "Bạn chưa nhập câu trả lời."
+
+BAT BUOC TRA VE DUY NHAT 1 DOI TUONG JSON HOP LE THEO DUNG CAU TRUC SAU:
+{
+  "tongDiem": 8,
+  "xepLoai": "Tốt / Đạt yêu cầu / Cần cố gắng",
+  "nhanXetTongQuan": "Nhận xét tổng quan ngắn gọn về cả 3 câu trả lời bằng tiếng Việt.",
+  "danhSachCauHoi": [
+    {
+      "soThuTu": 1,
+      "thoiGianQuyDinh": 15,
+      "soTu": 12,
+      "thoiGianNoiUocTinh": 5.5,
+      "diem": 3,
+      "trangThai": "Đạt chuẩn (Tốt) / Khá (Đủ ý chính) / Cần cải thiện",
+      "trichDanDeBai": "Copy Y HỆT nguyên văn dòng thông tin gốc trong bảng đề bài",
+      "huongDanChemTu": "Viết câu hoàn chỉnh bằng cách giữ nguyên chữ trong đề bài và đặt các từ chêm thêm trong ngoặc vuông [như thế này]",
+      "suaCauNguoiDung": "Sửa lại trực tiếp câu trả lời của học viên",
+      "giaiThichSuaCau": "Giải thích ngắn gọn lỗi sai đã sửa bằng tiếng Việt",
+      "danhGiaThongTin": "Đánh giá độ chính xác của thông tin bằng tiếng Việt",
+      "danhGiaThoiGian": "Đánh giá độ dài và thời lượng nói (so với 15s)",
+      "nhanXetChiTiet": "Nhận xét ngữ pháp, từ vựng và cách diễn đạt bằng tiếng Việt",
+      "cauTraLoiMau": "1 câu trả lời mẫu tiếng Anh chuẩn điểm tuyệt đối",
+      "dichTiengVietMau": "Bản dịch tiếng Việt của câu trả lời mẫu"
+    },
+    {
+      "soThuTu": 2,
+      "thoiGianQuyDinh": 15,
+      "soTu": 15,
+      "thoiGianNoiUocTinh": 6.5,
+      "diem": 3,
+      "trangThai": "Đạt chuẩn (Tốt)",
+      "trichDanDeBai": "...",
+      "huongDanChemTu": "...",
+      "suaCauNguoiDung": "...",
+      "giaiThichSuaCau": "...",
+      "danhGiaThongTin": "...",
+      "danhGiaThoiGian": "...",
+      "nhanXetChiTiet": "...",
+      "cauTraLoiMau": "...",
+      "dichTiengVietMau": "..."
+    },
+    {
+      "soThuTu": 3,
+      "thoiGianQuyDinh": 30,
+      "soTu": 28,
+      "thoiGianNoiUocTinh": 12.0,
+      "diem": 2,
+      "trangThai": "Khá (Đủ ý chính)",
+      "trichDanDeBai": "...",
+      "huongDanChemTu": "...",
+      "suaCauNguoiDung": "...",
+      "giaiThichSuaCau": "...",
+      "danhGiaThongTin": "...",
+      "danhGiaThoiGian": "...",
+      "nhanXetChiTiet": "...",
+      "cauTraLoiMau": "...",
+      "dichTiengVietMau": "..."
+    }
+  ]
 }`;
 
     const raw = await callGemini(env, prompt, true);
     return JSON.parse(cleanJson(raw));
 }
+
+// =========================================================
+// TOEIC LISTENING PART 2 AI GENERATOR (/api/toeic-part2/tao-de-ai)
+// =========================================================
+export async function taoBoDeToeicPart2(env, soCau = 6) {
+    const count = Math.max(3, Math.min(15, Number(soCau) || 6));
+    const prompt = `Ban la chuyen gia ra de thi TOEIC Listening Part 2 (Question-Response) chuan ETS.
+Hay tao ${count} cau hoi trac nghiem TOEIC Part 2 da dang cac dang: Who, Where, When, Why, How, What, Yes/No, Choice (Or), Statement, Indirect response.
+BAT BUOC tra ve DUY NHAT mang JSON theo dung cau truc:
+[
+  {
+    "loaiCauHoi": "WHEN / WHERE / WHO / WHY / HOW / YES_NO / STATEMENT",
+    "tenLoaiVi": "Câu hỏi Khi nào (When)",
+    "cauHoiEn": "When is the regional sales conference scheduled to begin?",
+    "cauHoiVi": "Hội nghị bán hàng khu vực dự kiến bắt đầu khi nào?",
+    "dapAnAEn": "At the Grand Hotel downtown.",
+    "dapAnAVi": "Tại khách sạn Grand ở trung tâm thành phố.",
+    "dapAnBEn": "Next Monday morning at nine.",
+    "dapAnBVi": "Sáng thứ Hai tuần tới lúc 9 giờ.",
+    "dapAnCEn": "Yes, I registered yesterday.",
+    "dapAnCVi": "Vâng, tôi đã đăng ký hôm qua.",
+    "dapAnDung": "B",
+    "tuKhoaChiDiem": "When (Khi nào) ➔ Next Monday morning at nine",
+    "meoPart2": "Nghe từ để hỏi 'When' ở đầu câu -> Chọn ngay đáp án chỉ thời gian (Next Monday), loại đáp án chỉ nơi chốn (A - bẫy Where) và Yes/No (C)."
+  }
+]`;
+    const raw = await callGemini(env, prompt, true);
+    return JSON.parse(cleanJson(raw));
+}
+

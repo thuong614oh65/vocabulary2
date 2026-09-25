@@ -464,18 +464,41 @@ export const DS_DE_MAU_LIST = [
 
 export function renderLuyenDe() {
     let html = TEMPLATES["luyen-de"];
-    const opts = DS_DE_MAU_LIST.map(de =>
-        `<option value="${de.id}">Đề #${de.id}: ${esc(de.tenEn)} (${esc(de.tenVi)})</option>`
-    ).join("");
-    html = html.replace(/<option th:each="de : \$\{dsDeMau\}"[\s\S]*?<\/option>/, opts);
+    const cardsHtml = DS_DE_MAU_LIST.map(de => `<div class="sample-test-card" data-id="${de.id}">
+                            <div class="thumb-wrapper">
+                                <span class="badge-id">Đề #${de.id}</span>
+                                <img src="${esc(de.anhUrl)}" alt="${esc(de.tenEn)}">
+                            </div>
+                            <div class="card-body-content">
+                                <div>
+                                    <div class="title-en">${esc(de.tenEn)}</div>
+                                    <div class="title-vi">${esc(de.tenVi)}</div>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm w-100 rounded-pill fw-semibold btn-select-sample" data-id="${de.id}">
+                                    Luyện đề này →
+                                </button>
+                            </div>
+                        </div>`).join("\n");
+    html = html.replace(/<div class="sample-tests-grid">[\s\S]*?<\/div>\s*<\/div>\s*<!-- TAB 2:/, `<div class="sample-tests-grid">\n${cardsHtml}\n                    </div>\n                </div>\n\n                <!-- TAB 2:`);
     return html;
 }
 
 // 12. Render luyen-phan-xa.html
 export function renderLuyenPhanXa({ dsBo = [], boIdChon = null, tenBoChon = "Luyện Phản Xạ", kieuHoc = "THEO_BO", soTuDangHoc = 0 }) {
     let html = TEMPLATES["luyen-phan-xa"];
-    const opts = dsBo.map(b => `<option value="${b.id}" ${Number(boIdChon) === Number(b.id) ? "selected" : ""}>${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("");
-    html = html.replace(/<option th:each="b : \$\{dsBo\}"[\s\S]*?<\/option>/, opts);
+    const dangHocOpt = (soTuDangHoc && soTuDangHoc > 0)
+        ? `<option value="DANG_HOC" ${kieuHoc === "DANG_HOC" ? "selected" : ""}>⚡ Các từ đang học (${soTuDangHoc} từ)</option>`
+        : "";
+    const boOpts = dsBo.map(b =>
+        `<option value="${b.id}" ${(Number(boIdChon) === Number(b.id) && kieuHoc !== "DANG_HOC" && kieuHoc !== "TU_SAI" && kieuHoc !== "NGAU_NHIEN") ? "selected" : ""}>${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`
+    ).join("");
+    const selHtml = `<select id="selBoTu" class="form-select px-select" onchange="doiBoTuPhanXa()">
+                    ${dangHocOpt}
+                    ${boOpts}
+                    <option value="TU_SAI" ${kieuHoc === "TU_SAI" ? "selected" : ""}>⚠️ Các từ hay làm sai (tối đa 25 từ)</option>
+                    <option value="NGAU_NHIEN" ${kieuHoc === "NGAU_NHIEN" ? "selected" : ""}>🎲 Ngẫu nhiên 25 từ</option>
+                </select>`;
+    html = html.replace(/<select id="selBoTu"[\s\S]*?<\/select>/, selHtml);
     html = html.replace(/th:value="\$\{boIdChon\}"/g, `value="${boIdChon || ""}"`);
     html = html.replace(/th:value="\$\{kieuHoc\}"/g, `value="${esc(kieuHoc)}"`);
     html = html.replace(/th:text="\$\{tenBoChon\}"/g, `>${esc(tenBoChon)}<`);
@@ -485,8 +508,11 @@ export function renderLuyenPhanXa({ dsBo = [], boIdChon = null, tenBoChon = "Luy
 // 13. Render tra-tu.html
 export function renderTraTu({ dsBo = [], tuKhoaBanDau = "", cheDoBanDau = "AUTO" }) {
     let html = TEMPLATES["tra-tu"];
-    const opts = dsBo.map(b => `<option value="${b.id}">${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("");
+    const opts = dsBo.length > 0
+        ? dsBo.map(b => `<option value="${b.id}">${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("")
+        : `<option value="">-- Chưa có bộ từ nào --</option>`;
     html = html.replace(/<option th:each="bo : \$\{dsBo\}"[\s\S]*?<\/option>/g, opts);
+    html = html.replace(/<option value="" th:if="\$\{#lists\.isEmpty\(dsBo\)\}">[\s\S]*?<\/option>/g, "");
     html = html.replace(/th:value="\$\{tuKhoaBanDau\}"/g, `value="${esc(tuKhoaBanDau)}"`);
     html = html.replace(/th:value="\$\{cheDoBanDau\}"/g, `value="${esc(cheDoBanDau)}"`);
     return html;
