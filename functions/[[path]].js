@@ -43,6 +43,7 @@ import {
 } from "./data/presets.js";
 
 import {
+    esc,
     renderDangNhap,
     renderDangKy,
     renderIndex,
