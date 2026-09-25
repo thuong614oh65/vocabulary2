@@ -408,7 +408,7 @@ export async function layTuDienAnh(word, env = null) {
         }
     } catch (e) {}
 
-    let tiengViet = await dichAnhViet(clean, env);
+    let tiengViet = await dichAnhViet(clean, null);
     if (!tiengViet || tiengViet.toLowerCase() === clean.toLowerCase()) {
         if (env) {
             try {

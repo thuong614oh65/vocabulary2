@@ -106,28 +106,30 @@ const BROWSER_GEMINI_BRIDGE = `<script>
     throw new Error("Không thể kết nối Gemini từ trình duyệt");
   };
   window.fetch = async function(input, init) {
-    const resp = await origFetch.call(this, input, init);
-    try {
-      const ct = resp.headers.get("content-type") || "";
-      if (ct.includes("application/json")) {
+    let resp = await origFetch.call(this, input, init);
+    for (let step = 0; step < 3; step++) {
+      try {
+        const ct = resp.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) break;
         const clone = resp.clone();
         const data = await clone.json();
-        if (data && data.__needClientGemini) {
-          const aiText = await window.__callGeminiFromBrowser(data.prompt, data.jsonMode, data.inlineData);
-          await origFetch("/api/gemini-cache", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: aiText })
-          });
-          const newHeaders = new Headers((init && init.headers) || {});
-          const enc = encodeURIComponent(aiText);
-          if (enc.length < 3000) {
-            newHeaders.set("X-Client-Ai-Result", enc);
-          }
-          return await origFetch.call(this, input, Object.assign({}, init || {}, { headers: newHeaders }));
+        if (!data || !data.__needClientGemini) break;
+        const aiText = await window.__callGeminiFromBrowser(data.prompt, data.jsonMode, data.inlineData);
+        await origFetch("/api/gemini-cache", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: aiText })
+        });
+        const newHeaders = new Headers((init && init.headers) || {});
+        const enc = encodeURIComponent(aiText);
+        if (enc.length < 3000) {
+          newHeaders.set("X-Client-Ai-Result", enc);
         }
+        resp = await origFetch.call(this, input, Object.assign({}, init || {}, { headers: newHeaders }));
+      } catch (e) {
+        break;
       }
-    } catch (e) {}
+    }
     return resp;
   };
 })();
