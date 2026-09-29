@@ -159,7 +159,7 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
     html = html.replace(/<span th:text="\$\{dsTatCa != null \? dsTatCa\.size\(\) : 0\}">0<\/span>/, `<span>${dsTatCa.length}</span>`);
     html = html.replace(/<tr th:each="tu,st : \$\{dsTatCa\}"[\s\S]*?<\/tr>/, rowsTatCa);
 
-    // Inject search bar right after the select-all toolbar (before <table>) in bangTatCa
+    // Inject search bar right above the bangTatCa table (replace the first table tag after bangTatCa)
     const searchBarHtml = `<div class="mb-3">
             <div class="input-group">
                 <span class="input-group-text bg-white border-end-0">🔍</span>
@@ -172,10 +172,14 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
             <div id="ketQuaTimKiem" class="text-muted small mt-1" style="display:none;"></div>
         </div>
         `;
-    html = html.replace(
-        /(<div id="bangTatCa"[^>]*>[\s\S]*?<\/div>\s*\n\s*)(<table\s)/,
-        (match, before, tableTag) => before + searchBarHtml + tableTag
-    );
+    // Find the position of bangTatCa, then inject before its <table
+    const bangTatCaStart = html.indexOf('id="bangTatCa"');
+    if (bangTatCaStart >= 0) {
+        const tableStart = html.indexOf('<table', bangTatCaStart);
+        if (tableStart >= 0) {
+            html = html.slice(0, tableStart) + searchBarHtml + html.slice(tableStart);
+        }
+    }
 
     return html;
 }
