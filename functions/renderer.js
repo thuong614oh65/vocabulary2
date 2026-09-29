@@ -166,6 +166,7 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
                 <input type="text" id="timKiemTu" class="form-control border-start-0 ps-0"
                        placeholder="Tìm kiếm từ tiếng Anh, nghĩa, tên bộ..."
                        oninput="locBangTuVung(this.value)"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault();return false;}"
                        autocomplete="off">
                 <button type="button" class="btn btn-outline-secondary" onclick="xoaTimKiem()" title="Xóa tìm kiếm">✕</button>
             </div>
