@@ -553,3 +553,76 @@ capNhatDemTuDaChon();
 
 window.docTu =
     docTu;
+
+// =========================================================
+// TÌM KIẾM / LỌC BẢNG CHỌN TỪNG TỪ (#bangTatCa)
+// =========================================================
+
+function locBangTuVung(query) {
+    const q = (query || "").trim().toLowerCase();
+    const ketQua = document.getElementById("ketQuaTimKiem");
+    const tbody = document.querySelector("#bangTatCa table tbody");
+    if (!tbody) return;
+
+    // Lấy tất cả rows (tr) của bảng
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    if (rows.length === 0) return;
+
+    // Xây dựng map: mỗi row biết bộ nào nó thuộc về (lấy từ data-bo-id)
+    let totalVisible = 0;
+
+    // Ẩn/hiện từng row, đồng thời track các td bộ (rowspan)
+    rows.forEach(function(tr) {
+        const tds = tr.querySelectorAll("td");
+        // Lấy text tiếng Anh, nghĩa
+        let tiengAnh = "";
+        let nghia = "";
+        let tenBo = "";
+        // Cột bộ có thể ở td đầu tiên (rowspan) hoặc không có (khi rowspan > 1)
+        // Cột tiếng Anh: tìm span.tu-don-text
+        const spanTuDon = tr.querySelector(".tu-don-text");
+        if (spanTuDon) tiengAnh = spanTuDon.textContent.toLowerCase();
+        // Lấy tất cả td text
+        tds.forEach(function(td, i) {
+            const txt = td.textContent.trim().toLowerCase();
+            if (!td.querySelector(".tu-don-text") && !td.querySelector("button") && !td.querySelector("input")) {
+                if (!nghia && i > 0) nghia = txt;
+            }
+            // td bộ: td có class td-bo-gop hoặc rowspan
+            if (td.classList.contains("td-bo-gop") || td.hasAttribute("rowspan")) {
+                tenBo = txt.toLowerCase();
+            }
+        });
+
+        if (!q) {
+            tr.style.display = "";
+            totalVisible++;
+        } else {
+            const matched = tiengAnh.includes(q) || nghia.includes(q) || tenBo.includes(q);
+            tr.style.display = matched ? "" : "none";
+            if (matched) totalVisible++;
+        }
+    });
+
+    // Cập nhật thông báo kết quả
+    if (!ketQua) return;
+    if (!q) {
+        ketQua.style.display = "none";
+        ketQua.textContent = "";
+    } else {
+        ketQua.style.display = "block";
+        ketQua.textContent = `🔍 Tìm thấy ${totalVisible} từ phù hợp với "${query}"`;
+    }
+}
+
+function xoaTimKiem() {
+    const inp = document.getElementById("timKiemTu");
+    if (inp) {
+        inp.value = "";
+        inp.focus();
+    }
+    locBangTuVung("");
+}
+
+window.locBangTuVung = locBangTuVung;
+window.xoaTimKiem = xoaTimKiem;

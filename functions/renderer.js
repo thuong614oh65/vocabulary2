@@ -159,6 +159,24 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
     html = html.replace(/<span th:text="\$\{dsTatCa != null \? dsTatCa\.size\(\) : 0\}">0<\/span>/, `<span>${dsTatCa.length}</span>`);
     html = html.replace(/<tr th:each="tu,st : \$\{dsTatCa\}"[\s\S]*?<\/tr>/, rowsTatCa);
 
+    // Inject search bar right after the select-all toolbar (before <table>) in bangTatCa
+    const searchBarHtml = `<div class="mb-3">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0">🔍</span>
+                <input type="text" id="timKiemTu" class="form-control border-start-0 ps-0"
+                       placeholder="Tìm kiếm từ tiếng Anh, nghĩa, tên bộ..."
+                       oninput="locBangTuVung(this.value)"
+                       autocomplete="off">
+                <button type="button" class="btn btn-outline-secondary" onclick="xoaTimKiem()" title="Xóa tìm kiếm">✕</button>
+            </div>
+            <div id="ketQuaTimKiem" class="text-muted small mt-1" style="display:none;"></div>
+        </div>
+        `;
+    html = html.replace(
+        /(<div id="bangTatCa"[^>]*>[\s\S]*?<\/div>\s*\n\s*)(<table\s)/,
+        (match, before, tableTag) => before + searchBarHtml + tableTag
+    );
+
     return html;
 }
 
