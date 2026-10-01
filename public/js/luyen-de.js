@@ -2,6 +2,16 @@
 // LUYỆN ĐỀ TOEIC SPEAKING Q7-9 (INTERACTIONS & AI SCORING)
 // =========================================================================
 
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 let currentExamData = null;
 let prepTimerInterval = null;
 let prepSecondsLeft = 45;
