@@ -609,3 +609,50 @@ body {
 .translate-result-box p:last-child {
     margin-bottom: 0;
 }
+
+/* =========================================================
+   VĂN BẢN ĐỀ THI ĐỊNH DẠNG CHUẨN FORM & DỊCH ĐỀ
+   ========================================================= */
+.exam-sheet-doc {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 10px;
+    color: #1e293b;
+    line-height: 1.6;
+}
+
+.exam-sheet-doc .table {
+    border-color: #cbd5e1;
+    margin-bottom: 0.5rem;
+}
+
+.exam-sheet-doc .table th, 
+.exam-sheet-doc .table td {
+    padding: 8px 12px;
+    vertical-align: top;
+    border-color: #e2e8f0;
+}
+
+.exam-sheet-doc .table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.exam-sheet-list {
+    padding-left: 1.25rem;
+    color: #334155;
+}
+
+.bilingual-exam-sheet {
+    background: #ffffff;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .bilingual-exam-sheet .col-md-6.border-end {
+        border-right: none !important;
+        border-bottom: 1px dashed #cbd5e1;
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+    }
+}

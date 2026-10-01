@@ -242,6 +242,193 @@ function loadSampleTest(id) {
 }
 
 // -------------------------------------------------------------
+// 3.5. ĐỊNH DẠNG BẢNG ĐỀ THI & DỊCH ĐỀ TIẾNG VIỆT
+// -------------------------------------------------------------
+function formatRawTextToTable(text, isVi = false) {
+    if (!text) return '<p class="text-muted">Không có văn bản.</p>';
+    if (typeof text === 'string' && text.includes('<table')) return text;
+
+    const clean = String(text).replace(/<br\s*\/?>/gi, '\n').trim();
+    let lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length <= 2 && clean.includes(';')) {
+        lines = clean.split(';').map(l => l.trim()).filter(Boolean);
+    }
+
+    let title = '';
+    const tableRows = [];
+    const listItems = [];
+    const footnotes = [];
+
+    lines.forEach((line, idx) => {
+        if (idx === 0 && !line.includes('|') && !line.includes('-') && !line.match(/\d{1,2}:\d{2}/)) {
+            title = line.replace(/^(Text \d+:?|Itinerary:?)\s*/i, '');
+            return;
+        }
+
+        if (line.startsWith('*')) {
+            footnotes.push(line);
+            return;
+        }
+
+        if (line.includes('|')) {
+            const parts = line.split('|').map(p => p.trim());
+            if (parts.length >= 2) {
+                const timeCol = parts[0];
+                const descCol = parts.slice(1).join(' | ');
+                tableRows.push(`<tr>
+                    <td class="fw-bold ${isVi ? 'text-success' : 'text-primary'} text-nowrap align-top" style="width: 120px;">${escapeHtml(timeCol)}</td>
+                    <td class="text-slate-800">${escapeHtml(descCol)}</td>
+                </tr>`);
+                return;
+            }
+        }
+
+        const timeMatch = line.match(/^((?:•\s*)?\d{1,2}:\d{2}\s*(?:[ap]\.m\.|[AP]M)?(?:\s*[-~–]\s*\d{1,2}:\d{2}\s*(?:[ap]\.m\.|[AP]M)?)?)\s*[:|-]?\s*(.*)$/);
+        if (timeMatch && timeMatch[2]) {
+            tableRows.push(`<tr>
+                <td class="fw-bold ${isVi ? 'text-success' : 'text-primary'} text-nowrap align-top" style="width: 120px;">${escapeHtml(timeMatch[1].replace(/^[•\s]+/, ''))}</td>
+                <td class="text-slate-800">${escapeHtml(timeMatch[2])}</td>
+            </tr>`);
+            return;
+        }
+
+        if (line.startsWith('•') || line.startsWith('-')) {
+            listItems.push(`<li class="mb-1">${escapeHtml(line.replace(/^[•\-]\s*/, ''))}</li>`);
+            return;
+        }
+
+        listItems.push(`<div class="mb-1">${escapeHtml(line)}</div>`);
+    });
+
+    let resHtml = '<div class="exam-sheet-doc text-start">';
+    if (title) {
+        resHtml += `<div class="text-center mb-2"><h5 class="fw-bold text-slate-800 mb-0">${escapeHtml(title)}</h5></div>`;
+    }
+
+    if (tableRows.length > 0) {
+        resHtml += `<div class="table-responsive">
+            <table class="table table-sm table-bordered table-hover align-middle mb-2 bg-white" style="font-size: 14.5px;">
+                <tbody>${tableRows.join('')}</tbody>
+            </table>
+        </div>`;
+    }
+
+    if (listItems.length > 0) {
+        resHtml += `<div class="exam-sheet-list mb-2" style="font-size: 14.5px;">${listItems.join('')}</div>`;
+    }
+
+    if (footnotes.length > 0) {
+        resHtml += `<div class="small text-muted fst-italic mt-1">${footnotes.map(f => escapeHtml(f)).join('<br>')}</div>`;
+    }
+
+    resHtml += '</div>';
+    return resHtml;
+}
+
+function formatExamSheetContent(data, lang = 'en') {
+    if (lang === 'vi') {
+        if (data.dichVanBan) {
+            if (data.dichVanBan.includes('<table') || data.dichVanBan.includes('<div class="exam-sheet-doc"')) {
+                return data.dichVanBan;
+            }
+            return formatRawTextToTable(data.dichVanBan, true);
+        }
+        return `<div class="text-center text-muted py-3">
+            <p class="mb-2">Chưa có bản dịch sẵn cho đề thi này.</p>
+            <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" onclick="dichTuDongDeThi()">
+                🤖 Bấm để AI dịch đề sang Tiếng Việt ngay
+            </button>
+        </div>`;
+    }
+
+    if (lang === 'bilingual') {
+        const enHtml = (data.noiDungHtml && data.noiDungHtml.includes('<table')) 
+            ? data.noiDungHtml 
+            : formatRawTextToTable(data.vanBanThongTin || data.tomTatNoiDung || '', false);
+        const viHtml = (data.dichVanBan && data.dichVanBan.includes('<table'))
+            ? data.dichVanBan
+            : (data.dichVanBan ? formatRawTextToTable(data.dichVanBan, true) : '');
+        
+        return `<div class="bilingual-exam-sheet">
+            <div class="row g-3">
+                <div class="col-md-6 border-end">
+                    <div class="fw-bold text-primary small mb-2">🇬🇧 BẢN GỐC TIẾNG ANH:</div>
+                    ${enHtml}
+                </div>
+                <div class="col-md-6">
+                    <div class="fw-bold text-success small mb-2">🇻🇳 BẢN DỊCH TIẾNG VIỆT:</div>
+                    ${viHtml || `<div class="text-muted small py-2">Chưa có bản dịch.<br><button class="btn btn-xs btn-outline-success mt-1" onclick="dichTuDongDeThi()">Dịch ngay</button></div>`}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Default 'en'
+    if (data.noiDungHtml && data.noiDungHtml.includes('<table')) {
+        return data.noiDungHtml;
+    }
+    return formatRawTextToTable(data.vanBanThongTin || data.tomTatNoiDung || '', false);
+}
+
+function renderExamSheetSummary(data, lang = 'en') {
+    const textSummary = document.getElementById('examTextSummary');
+    if (!textSummary) return;
+
+    const toolbarHtml = `
+    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
+        <span class="small fw-bold text-slate-700 d-flex align-items-center gap-1">
+            <span>📄</span> <span>Văn bản đề thi (Chuẩn bảng gốc):</span>
+        </span>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary ${lang === 'en' ? 'active fw-bold' : ''}" onclick="switchExamSheetLang('en')" title="Xem bản gốc tiếng Anh chuẩn bảng">
+                🇬🇧 Tiếng Anh
+            </button>
+            <button type="button" class="btn btn-outline-success ${lang === 'vi' ? 'active fw-bold' : ''}" onclick="switchExamSheetLang('vi')" title="Xem bản dịch tiếng Việt">
+                🇻🇳 Dịch đề
+            </button>
+            <button type="button" class="btn btn-outline-secondary ${lang === 'bilingual' ? 'active fw-bold' : ''}" onclick="switchExamSheetLang('bilingual')" title="Xem đối chiếu song ngữ">
+                🌐 Song ngữ
+            </button>
+        </div>
+    </div>
+    <div id="examSheetBody" class="mt-2">
+        ${formatExamSheetContent(data, lang)}
+    </div>`;
+
+    textSummary.innerHTML = toolbarHtml;
+    textSummary.classList.remove('d-none');
+}
+
+window.switchExamSheetLang = function(lang) {
+    if (!currentExamData) return;
+    renderExamSheetSummary(currentExamData, lang);
+};
+
+window.dichTuDongDeThi = async function() {
+    if (!currentExamData) return;
+    showLoading('AI đang dịch đề thi...', 'Dịch bảng thông tin và các câu hỏi sang tiếng Việt...');
+    try {
+        const textToTrans = currentExamData.vanBanThongTin || currentExamData.tomTatNoiDung || '';
+        const resp = await fetch('/api/tra-tu/dich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vanBan: textToTrans, sl: 'en', tl: 'vi' })
+        });
+        const res = await resp.json();
+        hideLoading();
+        if (res.banDich) {
+            currentExamData.dichVanBan = res.banDich;
+            renderExamSheetSummary(currentExamData, 'vi');
+        } else {
+            alert('Không thể dịch tự động. Vui lòng thử lại!');
+        }
+    } catch (e) {
+        hideLoading();
+        alert('Lỗi dịch: ' + e);
+    }
+};
+
+// -------------------------------------------------------------
 // 4. LOAD ĐỀ VÀO KHU VỰC LÀM BÀI
 // -------------------------------------------------------------
 function loadExamIntoPractice(data) {
@@ -265,27 +452,43 @@ function loadExamIntoPractice(data) {
         imgDisplay.classList.remove('d-none');
         textDisplay.classList.add('d-none');
         
-        // Hiển thị chữ trích xuất từ ảnh
-        if (data.tomTatNoiDung || data.vanBanThongTin) {
-            textSummary.innerHTML = (data.tomTatNoiDung || data.vanBanThongTin);
-            textSummary.classList.remove('d-none');
+        // Hiển thị chữ trích xuất từ ảnh chuẩn bảng gốc & hỗ trợ dịch tiếng Việt
+        if (data.noiDungHtml || data.tomTatNoiDung || data.vanBanThongTin) {
+            renderExamSheetSummary(data, 'en');
         } else {
             textSummary.classList.add('d-none');
         }
     } else {
         imgDisplay.classList.add('d-none');
         textSummary.classList.add('d-none');
-        textDisplay.innerHTML = data.vanBanThongTin || '<p>Không có văn bản.</p>';
+        textDisplay.innerHTML = data.noiDungHtml || formatRawTextToTable(data.vanBanThongTin || '<p>Không có văn bản.</p>', false);
         textDisplay.classList.remove('d-none');
     }
 
     // Tình huống cuộc gọi
-    document.getElementById('scenarioText').textContent = data.tinhHuong || 'You are answering an inquiry.';
+    const scenarioEl = document.getElementById('scenarioText');
+    if (scenarioEl) {
+        const transText = data.dichTinhHuong || '';
+        scenarioEl.innerHTML = `
+            <div class="text-slate-800">${escapeHtml(data.tinhHuong || 'You are answering an inquiry.')}</div>
+            ${transText ? `<div class="small text-muted fst-italic mt-2 pt-1 border-top" style="font-size: 13.5px;">🇻🇳 <strong>Dịch tình huống:</strong> ${escapeHtml(transText)}</div>` : ''}
+        `;
+    }
 
-    // 3 Câu hỏi
-    document.getElementById('q1Text').textContent = data.cauHoi1 || 'Question 1';
-    document.getElementById('q2Text').textContent = data.cauHoi2 || 'Question 2';
-    document.getElementById('q3Text').textContent = data.cauHoi3 || 'Question 3';
+    // 3 Câu hỏi (kèm dịch câu hỏi)
+    ['1', '2', '3'].forEach(num => {
+        const qTextEl = document.getElementById(`q${num}Text`);
+        const qKey = `cauHoi${num}`;
+        const transKey = `dichCauHoi${num}`;
+        if (qTextEl && data[qKey]) {
+            const qEn = data[qKey];
+            const qVi = data[transKey] || '';
+            qTextEl.innerHTML = `
+                <div class="fw-semibold text-slate-800">${escapeHtml(qEn)}</div>
+                ${qVi ? `<div class="small text-muted fst-italic mt-1 pt-1 border-top" style="font-size: 13px;">🇻🇳 <strong>Dịch:</strong> ${escapeHtml(qVi)}</div>` : ''}
+            `;
+        }
+    });
 
     // Reset các ô nhập
     ['ans1Input', 'ans2Input', 'ans3Input'].forEach(id => {
@@ -725,14 +928,29 @@ function renderEvaluationResults(res) {
     container.innerHTML = '';
 
     const questions = [
-        { qText: currentExamData ? currentExamData.cauHoi1 : 'Câu 1', ans: document.getElementById('ans1Input') ? document.getElementById('ans1Input').value.trim() : '', time: 15 },
-        { qText: currentExamData ? currentExamData.cauHoi2 : 'Câu 2', ans: document.getElementById('ans2Input') ? document.getElementById('ans2Input').value.trim() : '', time: 15 },
-        { qText: currentExamData ? currentExamData.cauHoi3 : 'Câu 3', ans: document.getElementById('ans3Input') ? document.getElementById('ans3Input').value.trim() : '', time: 30 }
+        { 
+            qText: currentExamData ? currentExamData.cauHoi1 : 'Câu 1', 
+            qTrans: currentExamData ? currentExamData.dichCauHoi1 : '', 
+            ans: document.getElementById('ans1Input') ? document.getElementById('ans1Input').value.trim() : '', 
+            time: 15 
+        },
+        { 
+            qText: currentExamData ? currentExamData.cauHoi2 : 'Câu 2', 
+            qTrans: currentExamData ? currentExamData.dichCauHoi2 : '', 
+            ans: document.getElementById('ans2Input') ? document.getElementById('ans2Input').value.trim() : '', 
+            time: 15 
+        },
+        { 
+            qText: currentExamData ? currentExamData.cauHoi3 : 'Câu 3', 
+            qTrans: currentExamData ? currentExamData.dichCauHoi3 : '', 
+            ans: document.getElementById('ans3Input') ? document.getElementById('ans3Input').value.trim() : '', 
+            time: 30 
+        }
     ];
 
     if (res.danhSachCauHoi && res.danhSachCauHoi.length > 0) {
         res.danhSachCauHoi.forEach((item, idx) => {
-            const qInfo = questions[idx] || { qText: `Câu ${idx+1}`, ans: '', time: 15 };
+            const qInfo = questions[idx] || { qText: `Câu ${idx+1}`, qTrans: '', ans: '', time: 15 };
             const card = document.createElement('div');
             card.className = 'result-q-card';
 
@@ -748,10 +966,15 @@ function renderEvaluationResults(res) {
                     </div>
                 </div>
 
-                <!-- 1. Câu hỏi -->
+                <!-- 1. Câu hỏi (kèm dịch câu hỏi) -->
                 <div class="p-3 bg-light rounded-3 mb-3 border">
                     <div class="fw-bold text-slate-700 mb-1">❓ Câu hỏi:</div>
                     <div class="text-slate-800 fw-semibold">${qInfo.qText}</div>
+                    ${qInfo.qTrans ? `
+                    <div class="mt-2 p-2 bg-white rounded-2 border-start border-3 border-info small text-slate-800 shadow-sm" style="font-size: 13.5px; border-left-color: #0284c7 !important;">
+                        🇻🇳 <strong>Dịch câu hỏi:</strong> ${escapeHtml(qInfo.qTrans)}
+                    </div>
+                    ` : ''}
                 </div>
 
                 <!-- 2. Đoạn văn trích dẫn từ đề bài (Dữ liệu gốc y như đề) -->
