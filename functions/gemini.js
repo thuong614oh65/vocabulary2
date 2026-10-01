@@ -893,7 +893,9 @@ BAI LAM CUA THI SINH:
 
 QUY TAC CHAM DIEM & HUONG DAN CHEM TU TRUC TIEP TU DE BAI (CUC KY QUAN TRONG):
 - Nguoi hoc muon nhin vao DONG DU LIEU GOC TRONG DE BAI va biet cach CHEM THEM TU (gioi tu, dong tu to be, chu ngu...) de doc thanh cau hoan chinh an diem ngay ma KHONG CAN suy luan phuc tap.
+- O truong "dichCauHoi": Hay dich cau hoi cua giam khao/nguoi goi sang tieng Viet tu nhien, de hieu.
 - O truong "trichDanDeBai": Hay trich xuat Y HET NGUYEN VAN dong thong tin trong de bai chua dap an cua cau hoi do.
+- O truong "dichTrichDanDeBai": Hay dich dong thong tin trich dan do sang tieng Viet ro rang, chuan xac.
 - O truong "huongDanChemTu": Hay viet lai chinh dong thong tin trong de bai do, nhung DAT CAC TU CHEM THEM TRONG DAU NGOAC VUONG [...] de bien cum tu roi rac trong bang thanh cau tieng Anh hoan chinh (Vi du: "[On] May 29, [from] 9:00 a.m. [to] 11:00 a.m., [there will be a] Visit to main drilling site [led by] Walterenz.").
 - O truong "suaCauNguoiDung": Neu thi sinh co nhap cau tra loi, hay sua truc tiep cau cua thi sinh thanh cau dung ngu phap va tu nhien nhat. Neu thi sinh bo trong, ghi "Bạn chưa nhập câu trả lời."
 
@@ -910,7 +912,9 @@ BAT BUOC TRA VE DUY NHAT 1 DOI TUONG JSON HOP LE THEO DUNG CAU TRUC SAU:
       "thoiGianNoiUocTinh": 5.5,
       "diem": 3,
       "trangThai": "Đạt chuẩn (Tốt) / Khá (Đủ ý chính) / Cần cải thiện",
+      "dichCauHoi": "Bản dịch tiếng Việt của câu hỏi này",
       "trichDanDeBai": "Copy Y HỆT nguyên văn dòng thông tin gốc trong bảng đề bài",
+      "dichTrichDanDeBai": "Bản dịch tiếng Việt của dòng dữ liệu gốc trích dẫn trong đề bài",
       "huongDanChemTu": "Viết câu hoàn chỉnh bằng cách giữ nguyên chữ trong đề bài và đặt các từ chêm thêm trong ngoặc vuông [như thế này]",
       "suaCauNguoiDung": "Sửa lại trực tiếp câu trả lời của học viên",
       "giaiThichSuaCau": "Giải thích ngắn gọn lỗi sai đã sửa bằng tiếng Việt",

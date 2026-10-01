@@ -438,6 +438,35 @@ window.dichTuDongDeThi = async function() {
     }
 };
 
+function getExcerptTranslation(excerpt, examData) {
+    if (!excerpt || !examData || !examData.dichVanBan) return '';
+    const cleanLines = String(examData.dichVanBan)
+        .replace(/<br\s*\/?>/gi, '\n')
+        .split('\n')
+        .map(l => l.trim())
+        .filter(Boolean);
+    
+    // 1. Khớp theo mốc thời gian (Ví dụ: 08:30 hoặc 8:30)
+    const timeMatch = excerpt.match(/\d{1,2}[:.]\d{2}/);
+    if (timeMatch) {
+        const timeDigits = timeMatch[0].replace(/^0/, '');
+        const matched = cleanLines.find(l => {
+            const lDigits = l.replace(/^0/, '');
+            return lDigits.includes(timeDigits);
+        });
+        if (matched) return matched.replace(/^[•\-\*\|\s]+/, '');
+    }
+
+    // 2. Khớp theo giá tiền (Ví dụ: $75, $50, $25)
+    const priceMatch = excerpt.match(/\$\d+/);
+    if (priceMatch) {
+        const matched = cleanLines.find(l => l.includes(priceMatch[0]));
+        if (matched) return matched.replace(/^[•\-\*\|\s]+/, '');
+    }
+
+    return '';
+}
+
 // -------------------------------------------------------------
 // 4. LOAD ĐỀ VÀO KHU VỰC LÀM BÀI
 // -------------------------------------------------------------
@@ -966,6 +995,9 @@ function renderEvaluationResults(res) {
 
             const scoreBadgeColor = item.diem === 3 ? 'bg-success' : (item.diem === 2 ? 'bg-primary' : 'bg-danger');
 
+            const qTransText = item.dichCauHoi || qInfo.qTrans || (currentExamData ? currentExamData['dichCauHoi' + (idx+1)] : '');
+            const promptTransText = item.dichTrichDanDeBai || getExcerptTranslation(item.trichDanDeBai, currentExamData);
+
             card.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h4 class="h5 fw-bold text-slate-800 mb-0">Câu ${item.soThuTu || (idx+1)} (${qInfo.time} giây)</h4>
@@ -980,9 +1012,9 @@ function renderEvaluationResults(res) {
                 <div class="p-3 bg-light rounded-3 mb-3 border">
                     <div class="fw-bold text-slate-700 mb-1">❓ Câu hỏi:</div>
                     <div class="text-slate-800 fw-semibold">${qInfo.qText}</div>
-                    ${qInfo.qTrans ? `
+                    ${qTransText ? `
                     <div class="mt-2 p-2 bg-white rounded-2 border-start border-3 border-info small text-slate-800 shadow-sm" style="font-size: 13.5px; border-left-color: #0284c7 !important;">
-                        🇻🇳 <strong>Dịch câu hỏi:</strong> ${escapeHtml(qInfo.qTrans)}
+                        🇻🇳 <strong>Dịch câu hỏi:</strong> ${escapeHtml(qTransText)}
                     </div>
                     ` : ''}
                 </div>
@@ -999,6 +1031,11 @@ function renderEvaluationResults(res) {
                     <div class="prompt-citation-text font-monospace mb-2" style="background: #ffffff; border: 1.5px dashed #0284c7; padding: 10px 14px; border-radius: 8px;">
                         ${item.trichDanDeBai.replace(/\n/g, '<br>')}
                     </div>
+                    ${promptTransText ? `
+                    <div class="mt-1 mb-2 p-2 bg-white rounded-2 border border-sky-200 small text-slate-800 shadow-sm" style="font-size: 13.5px; border-left: 3px solid #0284c7 !important;">
+                        🇻🇳 <strong>Dịch dữ liệu đề:</strong> ${escapeHtml(promptTransText)}
+                    </div>
+                    ` : ''}
                     ${item.huongDanChemTu ? `
                     <div class="p-3 rounded-3 bg-white border border-sky-200 mt-2">
                         <div class="small fw-bold text-sky-900 mb-1">💡 Chêm từ vào dữ liệu đề để ghép thành câu hoàn chỉnh:</div>
