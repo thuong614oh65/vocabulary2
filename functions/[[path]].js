@@ -32,7 +32,8 @@ import {
     taoDeQ79TuVanBan,
     taoDeQ79TuDong,
     chamDiemDeQ79,
-    taoBoDeToeicPart2
+    taoBoDeToeicPart2,
+    taoCotTruyenGhiNho
 } from "./gemini.js";
 
 import {
@@ -730,6 +731,65 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
                 status: 500,
                 headers: { "Content-Type": "text/plain; charset=UTF-8" }
             });
+        }
+    }
+
+    if (pathname === "/api/hoc/tao-cot-truyen" && method === "POST") {
+        try {
+            let body = {};
+            const ct = request.headers.get("content-type") || "";
+            if (ct.includes("application/json")) {
+                body = await request.json();
+            } else {
+                const formData = await request.formData();
+                const dsTuStr = formData.get("danhSachTu");
+                if (dsTuStr) {
+                    try { body.danhSachTu = JSON.parse(dsTuStr); } catch (e) {}
+                }
+                const tuIds = formData.getAll("tuIds");
+                if (tuIds.length > 0) body.tuIds = tuIds.map(Number);
+                if (formData.get("boId")) body.boId = Number(formData.get("boId"));
+                if (formData.get("kieuHoc")) body.kieuHoc = formData.get("kieuHoc");
+                if (formData.get("phamViBo")) body.phamViBo = formData.get("phamViBo");
+                if (formData.get("tuTu")) body.tuTu = Number(formData.get("tuTu"));
+                if (formData.get("denTu")) body.denTu = Number(formData.get("denTu"));
+            }
+
+            let danhSachTu = body.danhSachTu || [];
+
+            if (!Array.isArray(danhSachTu) || danhSachTu.length === 0) {
+                const tatCaTu = await getTatCaTuByUser(env, taiKhoanId);
+                if (Array.isArray(body.tuIds) && body.tuIds.length > 0) {
+                    const idSet = new Set(body.tuIds);
+                    danhSachTu = tatCaTu.filter(t => idSet.has(t.id));
+                } else if (body.boId) {
+                    danhSachTu = tatCaTu.filter(t => t.boId === body.boId);
+                    if (body.phamViBo === "TU_DEN" && danhSachTu.length > 0) {
+                        const from = Math.max(1, Math.min(Number(body.tuTu) || 1, danhSachTu.length));
+                        const to = Math.max(from, Math.min(Number(body.denTu) || danhSachTu.length, danhSachTu.length));
+                        danhSachTu = danhSachTu.slice(from - 1, to);
+                    }
+                } else if (body.kieuHoc === "TU_SAI") {
+                    danhSachTu = tatCaTu.filter(t => (t.soLanSai || 0) > 0).sort((a, b) => b.soLanSai - a.soLanSai);
+                } else {
+                    danhSachTu = shuffleArray(tatCaTu);
+                }
+            }
+
+            const wordsToProcess = danhSachTu.slice(0, 8);
+            if (wordsToProcess.length === 0) {
+                return jsonResponse({ error: "Không tìm thấy từ vựng nào để sáng tác câu chuyện." }, 400, sid);
+            }
+
+            const story = await taoCotTruyenGhiNho(env, wordsToProcess);
+            return jsonResponse({
+                ok: true,
+                story,
+                wordsCount: wordsToProcess.length
+            }, 200, sid);
+        } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
+            return jsonResponse({ error: "Lỗi AI sáng tác câu chuyện: " + (err.message || "Vui lòng thử lại") }, 500, sid);
         }
     }
 

@@ -625,4 +625,392 @@ function xoaTimKiem() {
 }
 
 window.locBangTuVung = locBangTuVung;
-window.xoaTimKiem = xoaTimKiem;
+window.xoaTimKiem = xoaTimKiem;
+
+// =========================================================
+// AI STORY MNEMONIC (KỂ CHUYỆN GHI NHỚ LIÊN TƯỞNG THỊ GIÁC)
+// Phương pháp: Visual Imagery + Story Chaining + Sound Mnemonic + Active Recall
+// =========================================================
+
+let currentStoryData = null;
+let currentStoryWords = [];
+let storyReadingTimer = null;
+
+function moModalCotTruyenUI() {
+    const modalEl = document.getElementById("modalCotTruyen");
+    if (!modalEl) return;
+    if (window.bootstrap && window.bootstrap.Modal) {
+        let m = bootstrap.Modal.getInstance(modalEl);
+        if (!m) m = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+        m.show();
+    } else {
+        modalEl.style.display = "block";
+        modalEl.classList.add("show");
+        document.body.classList.add("modal-open");
+        let backdrop = document.getElementById("modalBackdropCustom");
+        if (!backdrop) {
+            backdrop = document.createElement("div");
+            backdrop.id = "modalBackdropCustom";
+            backdrop.className = "modal-backdrop fade show";
+            document.body.appendChild(backdrop);
+        }
+    }
+}
+
+function dongModalCotTruyen() {
+    dungTatCaAmThanh();
+    if (storyReadingTimer) {
+        clearTimeout(storyReadingTimer);
+        storyReadingTimer = null;
+    }
+    const modalEl = document.getElementById("modalCotTruyen");
+    if (!modalEl) return;
+    if (window.bootstrap && window.bootstrap.Modal) {
+        let m = bootstrap.Modal.getInstance(modalEl);
+        if (m) m.hide();
+    }
+    modalEl.style.display = "none";
+    modalEl.classList.remove("show");
+    document.body.classList.remove("modal-open");
+    const backdrop = document.getElementById("modalBackdropCustom");
+    if (backdrop) backdrop.remove();
+}
+window.dongModalCotTruyen = dongModalCotTruyen;
+
+async function moModalHocCotTruyen(param) {
+    dungTatCaAmThanh();
+
+    let danhSachTu = [];
+
+    // Nếu bấm "Đổi câu chuyện khác" và đã có danh sách từ trước đó
+    if (param === true && currentStoryWords && currentStoryWords.length > 0) {
+        danhSachTu = currentStoryWords;
+    } else if (param === "chu-de") {
+        // Lấy từ danh sách chủ đề vừa tạo
+        if (!dsTuChuDeHienTai || dsTuChuDeHienTai.length === 0) {
+            alert("Vui lòng nhập chủ đề và bấm 'Đề xuất 10 từ mới' trước khi kể chuyện!");
+            if (tenChuDeInput) tenChuDeInput.focus();
+            return;
+        }
+        danhSachTu = dsTuChuDeHienTai.slice(0, 8).map(t => ({
+            tiengAnh: (t.tiengAnh || "").trim(),
+            tiengViet: (t.tiengViet || "").trim(),
+            phienAm: (t.phienAm || "").trim()
+        }));
+    } else {
+        // Thu thập từ theo chế độ học hiện tại
+        if (chonTu && chonTu.checked) {
+            const checkedBoxes = Array.from(document.querySelectorAll('#bangTatCa input.chk-tu-item[type="checkbox"]:checked'));
+            if (checkedBoxes.length < 2) {
+                alert("Vui lòng tích chọn từ 2 đến 8 từ trong danh sách bảng dưới để AI sáng tác câu chuyện liên tưởng!");
+                if (bangTatCa) bangTatCa.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+            danhSachTu = checkedBoxes.slice(0, 8).map(chk => {
+                const tr = chk.closest("tr");
+                const tdEng = tr ? tr.querySelector(".tu-don-text")?.closest("td") : null;
+                const tdViet = tdEng ? tdEng.nextElementSibling : null;
+                const tdIpa = tdViet ? tdViet.nextElementSibling : null;
+                return {
+                    tiengAnh: tr?.querySelector(".tu-don-text")?.textContent.trim() || "",
+                    tiengViet: tdViet?.textContent.trim() || "",
+                    phienAm: tdIpa?.textContent.trim() || ""
+                };
+            }).filter(t => t.tiengAnh);
+        } else if (theoBo && theoBo.checked) {
+            if (!boHoc || !boHoc.value) {
+                alert("Vui lòng chọn một bộ từ vựng trước khi kể chuyện!");
+                if (boHoc) boHoc.focus();
+                return;
+            }
+            const rows = Array.from(document.querySelectorAll("#bangTheoBo tbody tr"));
+            if (rows.length === 0) {
+                alert("Bộ từ này hiện chưa có từ vựng nào!");
+                return;
+            }
+            let startIndex = 0;
+            let endIndex = rows.length;
+            if (phamViTuDen && phamViTuDen.checked && tuTu && denTu) {
+                startIndex = Math.max(0, (parseInt(tuTu.value, 10) || 1) - 1);
+                endIndex = Math.min(rows.length, parseInt(denTu.value, 10) || rows.length);
+            }
+            const selectedRows = rows.slice(startIndex, endIndex).slice(0, 8);
+            danhSachTu = selectedRows.map(tr => {
+                const tdEng = tr.querySelector(".tu-don-text")?.closest("td");
+                const tdViet = tdEng ? tdEng.nextElementSibling : null;
+                const tdIpa = tdViet ? tdViet.nextElementSibling : null;
+                return {
+                    tiengAnh: tr.querySelector(".tu-don-text")?.textContent.trim() || "",
+                    tiengViet: tdViet?.textContent.trim() || "",
+                    phienAm: tdIpa?.textContent.trim() || ""
+                };
+            }).filter(t => t.tiengAnh);
+        } else if (theoChuDe && theoChuDe.checked) {
+            if (!dsTuChuDeHienTai || dsTuChuDeHienTai.length === 0) {
+                alert("Vui lòng nhập chủ đề và bấm 'Đề xuất 10 từ mới' trước khi kể chuyện!");
+                if (tenChuDeInput) tenChuDeInput.focus();
+                return;
+            }
+            danhSachTu = dsTuChuDeHienTai.slice(0, 8).map(t => ({
+                tiengAnh: (t.tiengAnh || "").trim(),
+                tiengViet: (t.tiengViet || "").trim(),
+                phienAm: (t.phienAm || "").trim()
+            }));
+        } else {
+            // Chế độ Ngẫu nhiên hoặc Từ sai: lấy 6 từ đầu tiên trong bảng tất cả từ
+            const allRows = Array.from(document.querySelectorAll("#bangTatCa tbody tr"));
+            if (allRows.length > 0) {
+                const shuffled = allRows.slice().sort(() => 0.5 - Math.random()).slice(0, 6);
+                danhSachTu = shuffled.map(tr => {
+                    const tdEng = tr.querySelector(".tu-don-text")?.closest("td");
+                    const tdViet = tdEng ? tdEng.nextElementSibling : null;
+                    const tdIpa = tdViet ? tdViet.nextElementSibling : null;
+                    return {
+                        tiengAnh: tr.querySelector(".tu-don-text")?.textContent.trim() || "",
+                        tiengViet: tdViet?.textContent.trim() || "",
+                        phienAm: tdIpa?.textContent.trim() || ""
+                    };
+                }).filter(t => t.tiengAnh);
+            }
+        }
+    }
+
+    if (!danhSachTu || danhSachTu.length === 0) {
+        alert("Không tìm thấy từ vựng nào để sáng tác câu chuyện. Vui lòng chọn từ hoặc bộ từ!");
+        return;
+    }
+
+    currentStoryWords = danhSachTu;
+
+    // Mở modal và hiển thị Loading
+    moModalCotTruyenUI();
+    const loadingEl = document.getElementById("storyLoading");
+    const contentEl = document.getElementById("storyMainContent");
+    const errorEl = document.getElementById("storyError");
+    const btnRegen = document.getElementById("btnStoryRegen");
+
+    if (loadingEl) loadingEl.style.display = "block";
+    if (contentEl) contentEl.style.display = "none";
+    if (errorEl) errorEl.style.display = "none";
+    if (btnRegen) btnRegen.disabled = true;
+
+    try {
+        const resp = await fetch("/api/hoc/tao-cot-truyen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ danhSachTu: currentStoryWords })
+        });
+
+        if (resp.status === 401) {
+            alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            window.location.href = "/dangnhap";
+            return;
+        }
+
+        if (!resp.ok) {
+            const errTxt = await resp.text();
+            throw new Error(errTxt || "Không thể kết nối dịch vụ sáng tác câu chuyện AI");
+        }
+
+        const data = await resp.json();
+        if (!data || !data.story) {
+            throw new Error(data?.error || "Dữ liệu câu chuyện không hợp lệ");
+        }
+
+        currentStoryData = data.story;
+        hienThiStory(currentStoryData);
+
+        if (loadingEl) loadingEl.style.display = "none";
+        if (contentEl) contentEl.style.display = "block";
+    } catch (err) {
+        console.error("Lỗi tạo câu chuyện AI:", err);
+        if (loadingEl) loadingEl.style.display = "none";
+        if (errorEl) {
+            errorEl.style.display = "block";
+            errorEl.textContent = "❌ " + (err.message || "Đã xảy ra lỗi khi sáng tác câu chuyện.");
+        }
+    } finally {
+        if (btnRegen) btnRegen.disabled = false;
+    }
+}
+window.moModalHocCotTruyen = moModalHocCotTruyen;
+
+function hienThiStory(story) {
+    if (!story) return;
+
+    // 1. Tiêu đề & huy hiệu
+    const titleEl = document.getElementById("storyTitle");
+    if (titleEl) titleEl.textContent = story.tieuDe || "Câu chuyện liên tưởng ghi nhớ";
+
+    const badgeEl = document.getElementById("storyWordCountBadge");
+    if (badgeEl) badgeEl.textContent = "📚 " + (currentStoryWords.length) + " từ vựng";
+
+    // 2. Bức tranh tâm trí (Visual Scene)
+    const visualEl = document.getElementById("storyVisualScene");
+    if (visualEl) visualEl.innerHTML = story.moTaHinhAnh || "";
+
+    const guideEl = document.getElementById("storyVisualGuide");
+    if (guideEl) {
+        guideEl.innerHTML = "💡 <em>" + escapeHtml(story.goiYTuongTuong || "Nhắm mắt lại 5 giây và tưởng tượng rõ nét màu sắc, âm thanh của khung cảnh trên!") + "</em>";
+    }
+
+    // 3. Cốt truyện móc xích (Narrative)
+    const rawStory = story.cotTruyen || "";
+    const parsedStoryHtml = rawStory.replace(/\[([^\|\]]+)\|([^\|\]]+)\|([^\|\]]+)\]/g, function(match, w, ipa, vi) {
+        const cleanW = w.trim();
+        const cleanIpa = ipa.trim();
+        const cleanVi = vi.trim();
+        return `<button type="button" class="story-chip-tu" onclick="docTu('${escapeJs(cleanW)}')" title="Bấm để nghe phát âm giọng bản xứ chuẩn">
+            <b>${escapeHtml(cleanW)}</b>
+            <small class="story-chip-ipa">${escapeHtml(cleanIpa)}</small>
+            <span class="story-chip-meaning">(${escapeHtml(cleanVi)})</span>
+            <span class="story-chip-speaker">🔊</span>
+        </button>`;
+    });
+
+    const narrativeBox = document.getElementById("storyNarrativeBox");
+    if (narrativeBox) narrativeBox.innerHTML = parsedStoryHtml;
+
+    // 4. Thử thách đục lỗ (Active Recall Cloze)
+    const parsedClozeHtml = rawStory.replace(/\[([^\|\]]+)\|([^\|\]]+)\|([^\|\]]+)\]/g, function(match, w, ipa, vi) {
+        const cleanW = w.trim();
+        const cleanIpa = ipa.trim();
+        const cleanVi = vi.trim();
+        return `<span class="story-cloze-card" onclick="latTuDucLo(this, '${escapeJs(cleanW)}')" data-revealed="false">
+            <span class="story-cloze-blank">
+                [ ___ <b>${escapeHtml(cleanVi)}</b> ___ <span class="badge bg-warning text-dark ms-1">👁️ Nhớ ra chưa?</span> ]
+            </span>
+            <span class="story-cloze-revealed" style="display: none;">
+                <b>${escapeHtml(cleanW)}</b>
+                <small class="text-muted">${escapeHtml(cleanIpa)}</small>
+                <span>(${escapeHtml(cleanVi)})</span>
+                <span>🔊</span>
+            </span>
+        </span>`;
+    });
+
+    const clozeBox = document.getElementById("storyClozeBox");
+    if (clozeBox) clozeBox.innerHTML = parsedClozeHtml;
+
+    // 5. Bảng chi tiết từ & Mẹo âm thanh tương tự
+    const wordsListEl = document.getElementById("storyWordsList");
+    if (wordsListEl) {
+        wordsListEl.innerHTML = "";
+        const tuArr = Array.isArray(story.cacTuKhoa) ? story.cacTuKhoa : currentStoryWords;
+        tuArr.forEach(w => {
+            const eng = (w.tiengAnh || "").trim();
+            const vi = (w.tiengViet || "").trim();
+            const ipa = (w.phienAm || "").trim();
+            const lienTuong = (w.lienTuong || "").trim();
+            const viDu = (w.viDuNgan || w.viDu || "").trim();
+
+            const col = document.createElement("div");
+            col.className = "col-md-6 col-12";
+            col.innerHTML = `
+                <div class="story-word-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="fw-bold text-primary mb-1">
+                                ${escapeHtml(eng)}
+                                <small class="text-muted fst-italic ms-1 font-monospace">${escapeHtml(ipa)}</small>
+                            </h6>
+                            <div class="fw-semibold text-dark small">${escapeHtml(vi)}</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success rounded-circle px-2 py-1" onclick="docTu('${escapeJs(eng)}')" title="Nghe phát âm chuẩn">
+                            🔊
+                        </button>
+                    </div>
+                    ${lienTuong ? `<div class="story-lien-tuong-box">💡 <b>Mẹo liên tưởng:</b> ${escapeHtml(lienTuong)}</div>` : ''}
+                    ${viDu ? `<div class="small text-muted mt-2 fst-italic">💬 "${escapeHtml(viDu)}"</div>` : ''}
+                </div>
+            `;
+            wordsListEl.appendChild(col);
+        });
+    }
+
+    chuyenCheDoStory('story');
+}
+
+function chuyenCheDoStory(cheDo) {
+    const btnStory = document.getElementById("btnModeStory");
+    const btnCloze = document.getElementById("btnModeCloze");
+    const narrativeBox = document.getElementById("storyNarrativeBox");
+    const clozeBox = document.getElementById("storyClozeBox");
+    const toolbar = document.getElementById("clozeToolbar");
+    const icon = document.getElementById("storyNarrativeIcon");
+    const title = document.getElementById("storyNarrativeTitle");
+
+    if (cheDo === 'cloze') {
+        if (btnStory) btnStory.classList.remove("active");
+        if (btnCloze) btnCloze.classList.add("active");
+        if (narrativeBox) narrativeBox.style.display = "none";
+        if (clozeBox) clozeBox.style.display = "block";
+        if (toolbar) toolbar.style.display = "flex";
+        if (icon) icon.textContent = "🧠";
+        if (title) title.textContent = "Bước 2: Thử thách đục lỗ (Active Recall)";
+    } else {
+        if (btnStory) btnStory.classList.add("active");
+        if (btnCloze) btnCloze.classList.remove("active");
+        if (narrativeBox) narrativeBox.style.display = "block";
+        if (clozeBox) clozeBox.style.display = "none";
+        if (toolbar) toolbar.style.display = "none";
+        if (icon) icon.textContent = "📖";
+        if (title) title.textContent = "Bước 2: Cốt truyện móc xích liên tưởng";
+    }
+}
+window.chuyenCheDoStory = chuyenCheDoStory;
+
+function latTuDucLo(el, word) {
+    if (!el) return;
+    const blank = el.querySelector(".story-cloze-blank");
+    const rev = el.querySelector(".story-cloze-revealed");
+    if (!blank || !rev) return;
+
+    const isRevealed = el.getAttribute("data-revealed") === "true";
+    if (!isRevealed) {
+        blank.style.display = "none";
+        rev.style.display = "inline-flex";
+        el.setAttribute("data-revealed", "true");
+        if (word) docTu(word);
+    } else {
+        blank.style.display = "inline-flex";
+        rev.style.display = "none";
+        el.setAttribute("data-revealed", "false");
+    }
+}
+window.latTuDucLo = latTuDucLo;
+
+function latTatCaTuDucLo(moTatCa) {
+    const cards = document.querySelectorAll("#storyClozeBox .story-cloze-card");
+    cards.forEach(card => {
+        const blank = card.querySelector(".story-cloze-blank");
+        const rev = card.querySelector(".story-cloze-revealed");
+        if (!blank || !rev) return;
+        if (moTatCa) {
+            blank.style.display = "none";
+            rev.style.display = "inline-flex";
+            card.setAttribute("data-revealed", "true");
+        } else {
+            blank.style.display = "inline-flex";
+            rev.style.display = "none";
+            card.setAttribute("data-revealed", "false");
+        }
+    });
+}
+window.latTatCaTuDucLo = latTatCaTuDucLo;
+
+function docToanBoTuStory() {
+    if (!currentStoryWords || currentStoryWords.length === 0) return;
+    dungTatCaAmThanh();
+    let idx = 0;
+    function docTiep() {
+        if (idx >= currentStoryWords.length) return;
+        const w = currentStoryWords[idx].tiengAnh;
+        docTu(w);
+        idx++;
+        storyReadingTimer = setTimeout(docTiep, 1600);
+    }
+    docTiep();
+}
+window.docToanBoTuStory = docToanBoTuStory;
+

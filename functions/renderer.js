@@ -103,6 +103,8 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
     html = html.replace(/th:value="\$\{hocDTO\.denTu != null[\s\S]*?\}"/, `value="${denTu}"`);
     html = html.replace(/th:field="\*\s*\{tenChuDe\}"/g, 'value=""');
     html = html.replace(/th:field="\*\s*\{chuDeTuJson\}"/g, 'value=""');
+    html = html.replace('/css/hoc.css?v=7', '/css/hoc.css?v=9');
+    html = html.replace('/js/hoc.js?v=8', '/js/hoc.js?v=9');
 
     // Render #bangTheoBo rows
     const rowsTheoBo = dsTheoBo.map((tu, idx) => {
@@ -180,6 +182,177 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
         if (tableStart >= 0) {
             html = html.slice(0, tableStart) + searchBarHtml + html.slice(tableStart);
         }
+    }
+
+    // Inject "Kể chuyện ghi nhớ (AI Story)" button into btn-action-group
+    const btnAiStoryMain = `<button type="button"
+                    id="btnKecChuyenAi"
+                    onclick="moModalHocCotTruyen()"
+                    class="btn btn-ai-story px-4 py-2 fw-bold text-white shadow-sm"
+                    title="Phương pháp siêu trí nhớ: Bức tranh tâm trí sinh động &amp; Cốt truyện móc xích">
+                🎬 Kể chuyện ghi nhớ (AI Story)
+            </button>`;
+    html = html.replace(/(⚡\s*Luyện phản xạ[\s\S]*?<\/button>)/, `$1\n            ${btnAiStoryMain}`);
+
+    // Inject "Kể chuyện ghi nhớ (AI Story)" button into khungBangChuDe
+    const btnAiStoryChuDe = `<button type="button"
+                                class="btn btn-ai-story px-3 py-1 fw-bold text-white shadow-sm"
+                                onclick="moModalHocCotTruyen('chu-de')"
+                                title="Kể chuyện ghi nhớ 10 từ mới thuộc chủ đề này">
+                            🎬 Kể chuyện ghi nhớ (AI Story)
+                        </button>`;
+    html = html.replace(/(🔄\s*Đổi 10 từ khác[\s\S]*?<\/button>)/, `$1\n                        ${btnAiStoryChuDe}`);
+
+    // Modal Kể chuyện ghi nhớ (AI Story Mnemonic)
+    const modalStoryHtml = `
+<!-- =========================================================
+     MODAL KỂ CHUYỆN GHI NHỚ (AI STORY MNEMONIC)
+     Phương pháp: Visual Imagery + Story Chaining + Sound Mnemonic + Active Recall
+     ========================================================= -->
+<div class="modal fade" id="modalCotTruyen" tabindex="-1" aria-labelledby="modalCotTruyenLabel" aria-hidden="true" style="display:none;">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content story-modal-custom border-0 shadow-lg">
+            
+            <div class="modal-header story-modal-header text-white">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-3">🎬</span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="modalCotTruyenLabel">
+                            Kể chuyện ghi nhớ liên tưởng (AI Story Mnemonic)
+                        </h5>
+                        <small class="opacity-75">Phương pháp siêu trí nhớ: Hình ảnh hóa + Cốt truyện móc xích + Active Recall</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" onclick="dongModalCotTruyen()" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4 story-modal-body" id="modalCotTruyenBody">
+                
+                <!-- 1. LOADING STATE -->
+                <div id="storyLoading" class="text-center py-5" style="display:none;">
+                    <div class="spinner-grow text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
+                    <h5 class="fw-bold text-primary mt-2" id="storyLoadingText">
+                        🤖 AI Gemini đang sáng tác câu chuyện liên tưởng và thiết kế bức tranh tâm trí...
+                    </h5>
+                    <p class="text-muted small mt-1 mb-0">
+                        Đang kết hợp phương pháp móc xích cốt truyện &amp; âm thanh tương tự để bạn nhớ sâu không bao giờ quên!
+                    </p>
+                </div>
+
+                <!-- 2. CONTENT STATE -->
+                <div id="storyMainContent" style="display:none;">
+                    
+                    <!-- Top Info bar -->
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-purple-subtle text-purple border border-purple px-3 py-2 fs-6 rounded-pill" id="storyWordCountBadge">
+                                📚 6 từ vựng
+                            </span>
+                            <h5 class="fw-bold text-dark m-0" id="storyTitle">Tiêu đề câu chuyện</h5>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" id="btnModeStory" class="btn btn-outline-primary active fw-semibold" onclick="chuyenCheDoStory('story')">
+                                📖 Xem câu chuyện
+                            </button>
+                            <button type="button" id="btnModeCloze" class="btn btn-outline-primary fw-semibold" onclick="chuyenCheDoStory('cloze')">
+                                🧠 Thử thách đục lỗ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- BƯỚC 1: BỨC TRANH TÂM TRÍ (MENTAL SCENE) -->
+                    <div class="card mb-3 story-card-visual border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fs-4">👁️</span>
+                                <h6 class="fw-bold text-purple mb-0">Bước 1: Bức tranh tâm trí (Visual Mental Scene)</h6>
+                            </div>
+                            <div class="story-visual-desc mb-2" id="storyVisualScene">
+                                <!-- Mo ta hinh anh -->
+                            </div>
+                            <div class="story-visual-guide alert alert-info py-2 px-3 mb-0 small" id="storyVisualGuide">
+                                💡 <em>Gợi ý: Nhắm mắt lại 5 giây và tưởng tượng rõ nét màu sắc, âm thanh của khung cảnh trên!</em>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BƯỚC 2: CỐT TRUYỆN MÓC XÍCH HOẶC ĐỤC LỖ -->
+                    <div class="card mb-3 story-card-narrative border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fs-4" id="storyNarrativeIcon">📖</span>
+                                    <h6 class="fw-bold text-dark mb-0" id="storyNarrativeTitle">Bước 2: Cốt truyện móc xích liên tưởng</h6>
+                                </div>
+                                <div id="clozeToolbar" style="display:none;" class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="latTatCaTuDucLo(true)">
+                                        👁️ Mở tất cả từ
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="latTatCaTuDucLo(false)">
+                                        🔒 Ẩn tất cả từ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Narrative text (Full story with audio chips) -->
+                            <div id="storyNarrativeBox" class="story-text-container p-3 rounded mb-2">
+                                <!-- Rendered with clickable audio chips -->
+                            </div>
+
+                            <!-- Cloze text (Active recall challenge) -->
+                            <div id="storyClozeBox" class="story-text-container p-3 rounded mb-2" style="display:none;">
+                                <!-- Rendered with interactive blank inputs / reveal pills -->
+                            </div>
+
+                            <div class="small text-muted fst-italic">
+                                🔊 Bấm trực tiếp vào bất kỳ từ vựng nào trong câu chuyện để nghe phát âm giọng bản xứ chuẩn!
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BƯỚC 3: BẢNG CHI TIẾT TỪ VỰNG & MẸO ÂM THANH TƯƠNG TỰ -->
+                    <div class="card border-0 shadow-sm story-card-words">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <span class="fs-4">💡</span>
+                                <h6 class="fw-bold text-dark mb-0">Bước 3: Mẹo liên tưởng âm thanh (Sound Mnemonics) &amp; Chi tiết từ</h6>
+                            </div>
+                            <div id="storyWordsList" class="row g-2">
+                                <!-- List of word cards -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 3. ERROR STATE -->
+                <div id="storyError" class="alert alert-danger my-3" style="display:none;"></div>
+
+            </div>
+
+            <div class="modal-footer story-modal-footer bg-light d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" id="btnStoryRegen" onclick="moModalHocCotTruyen(true)">
+                        🔄 Đổi câu chuyện khác
+                    </button>
+                    <button type="button" class="btn btn-outline-success" id="btnStoryDocToanBo" onclick="docToanBoTuStory()">
+                        🔊 Nghe đọc lần lượt
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary px-4" onclick="dongModalCotTruyen()">
+                    Đóng
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+`;
+
+    if (html.includes("</body>")) {
+        html = html.replace("</body>", `${modalStoryHtml}\n<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>\n</body>`);
+    } else {
+        html += modalStoryHtml;
     }
 
     return html;

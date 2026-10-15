@@ -479,3 +479,193 @@ input[type="checkbox"] {
         min-width: 680px;
     }
 }
+
+/* =========================================================
+   19. AI STORY MNEMONIC (KỂ CHUYỆN GHI NHỚ LIÊN TƯỞNG)
+   ========================================================= */
+
+.btn-ai-story {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+    transition: all 0.25s ease;
+    border-radius: 8px;
+}
+
+.btn-ai-story:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
+    filter: brightness(1.08);
+    color: #ffffff !important;
+}
+
+.story-modal-custom {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.story-modal-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    padding: 16px 24px;
+}
+
+.story-card-visual {
+    background: #faf5ff;
+    border: 1.5px solid #e9d5ff !important;
+    border-radius: 12px;
+}
+
+.text-purple {
+    color: #7e22ce !important;
+}
+
+.bg-purple-subtle {
+    background-color: #f3e8ff !important;
+}
+
+.border-purple {
+    border-color: #d8b4fe !important;
+}
+
+.story-visual-desc {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #581c87;
+    font-weight: 500;
+}
+
+.story-card-narrative {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 12px;
+}
+
+.story-text-container {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    font-size: 1.15rem;
+    line-height: 2.2;
+    color: #1e293b;
+}
+
+.story-chip-tu {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px;
+    margin: 3px 4px;
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1.5px solid #c7d2fe;
+    border-radius: 20px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.1);
+}
+
+.story-chip-tu:hover {
+    background: #4f46e5;
+    color: #ffffff !important;
+    border-color: #4338ca;
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+}
+
+.story-chip-tu:hover .story-chip-ipa,
+.story-chip-tu:hover .story-chip-meaning {
+    color: #e0e7ff !important;
+}
+
+.story-chip-ipa {
+    font-size: 0.85rem;
+    font-style: italic;
+    color: #6366f1;
+    font-weight: normal;
+}
+
+.story-chip-meaning {
+    font-size: 0.9rem;
+    color: #4338ca;
+    font-weight: 500;
+}
+
+.story-chip-speaker {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.story-cloze-card {
+    display: inline-block;
+    margin: 3px 4px;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: all 0.2s ease;
+}
+
+.story-cloze-blank {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1.5px dashed #f59e0b;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.story-cloze-blank:hover {
+    background: #fde68a;
+    transform: scale(1.03);
+}
+
+.story-cloze-revealed {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #dcfce7;
+    color: #166534;
+    border: 1.5px solid #22c55e;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    animation: storyPulse 0.4s ease;
+}
+
+@keyframes storyPulse {
+    0% { transform: scale(0.9); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+.story-word-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    transition: all 0.2s ease;
+    height: 100%;
+}
+
+.story-word-card:hover {
+    border-color: #818cf8;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+    transform: translateY(-2px);
+}
+
+.story-lien-tuong-box {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    color: #92400e;
+    margin-top: 6px;
+}

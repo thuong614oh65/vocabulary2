@@ -994,3 +994,62 @@ BAT BUOC tra ve DUY NHAT mang JSON theo dung cau truc:
     return JSON.parse(cleanJson(raw));
 }
 
+// =========================================================
+// AI MNEMONIC STORY GENERATOR (/api/hoc/tao-cot-truyen)
+// Phương pháp: Visual Imagery + Story Chaining + Sound Mnemonic
+// =========================================================
+export async function taoCotTruyenGhiNho(env, danhSachTu = []) {
+    const tuList = Array.isArray(danhSachTu) ? danhSachTu.slice(0, 8) : [];
+    if (tuList.length === 0) {
+        throw new Error("Danh sách từ vựng trống.");
+    }
+
+    const tuLines = tuList.map((t, idx) => {
+        const eng = (t.tiengAnh || "").trim();
+        const vi = (t.tiengViet || "").trim();
+        const ipa = (t.phienAm || "").trim();
+        return `${idx + 1}. ${eng} (${ipa}): ${vi}`;
+    }).join("\n");
+
+    const prompt = `Bạn là chuyên gia siêu trí nhớ hàng đầu (kết hợp các phương pháp ghi nhớ đỉnh cao: Bức tranh tâm trí sinh động - Vivid Mental Imagery, Móc xích cốt truyện - Story Chaining, và Âm thanh tương tự - Sound-alike Mnemonics như WaniKani, Memrise, Hack Não 1500).
+
+Nhiệm vụ của bạn là sáng tác một câu chuyện ghi nhớ vi mô (Micro-story) cực kỳ lôi cuốn, hài hước, kỳ dị hoặc phóng đại bất ngờ để móc xích tất cả các từ vựng tiếng Anh dưới đây thành một chuỗi sự kiện không thể quên trong tâm trí người học:
+
+DANH SÁCH TỪ VỰNG CẦN GHI NHỚ:
+${tuLines}
+
+QUY TẮC CỐT LÕI (BẮT BUỘC):
+1. BỨC TRANH TÂM TRÍ (moTaHinhAnh): Mô tả một khung cảnh trực quan kỳ lạ, giàu màu sắc, cảm xúc hoặc chi tiết phóng đại phi lý (vì não bộ con người nhớ hình ảnh bất thường lâu hơn gấp 10 lần so với câu chữ thông thường).
+2. GỢI Ý TƯỞNG TƯỢNG (goiYTuongTuong): Lời hướng dẫn 1-2 câu ngắn giúp người học nhắm mắt hình dung khung cảnh cụ thể trong tâm trí.
+3. CỐT TRUYỆN MÓC XÍCH (cotTruyen): Một câu chuyện ngắn gọn (3 đến 5 câu), tiếng Việt tự nhiên, lồng ghép TẤT CẢ các từ vựng tiếng Anh trên vào câu chuyện theo đúng định dạng:
+   [từ_tiếng_anh|/phiên_âm/|nghĩa_tiếng_việt]
+   Ví dụ: "Hôm nay trời nắng gắt, một chú mèo [curious|/ˈkjʊəriəs/|tò mò] đã bất ngờ trèo lên [counter|/ˈkaʊntər/|quầy bếp]..."
+   Chú ý: PHẢI dùng đúng cú pháp [từ_tiếng_anh|/phiên_âm/|nghĩa_tiếng_việt] để hệ thống gắn nút phát âm thanh và hiệu ứng tương tác.
+4. THỬ THÁCH ĐỤC LỖ (thuThachDucLo): Bản sao y hệt cốt truyện trên nhưng thay thế toàn bộ [từ_tiếng_anh|/phiên_âm/|nghĩa_tiếng_việt] bằng dạng đục lỗ để người học tự kiểm tra phản xạ gợi nhớ:
+   [___ (nghĩa_tiếng_việt) ___]
+   Ví dụ: "Hôm nay trời nắng gắt, một chú mèo [___ (tò mò) ___] đã bất ngờ trèo lên [___ (quầy bếp) ___]..."
+5. MẸO LIÊN TƯỞNG TỪNG TỪ (cacTuKhoa): Cung cấp cho từng từ một mẹo âm thanh tương tự hoặc hình ảnh bắc cầu (bắc cầu âm thanh tiếng Việt hoặc ngữ cảnh đời thường) giúp nhớ phát âm và nghĩa ngay tức khắc.
+
+BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ VỚI CẤU TRÚC SAU:
+{
+  "tieuDe": "Tiêu đề câu chuyện giật gân, thú vị",
+  "moTaHinhAnh": "Mô tả bức tranh tâm trí phóng đại, kỳ dị...",
+  "goiYTuongTuong": "Nhắm mắt lại 5 giây và tưởng tượng...",
+  "cotTruyen": "Cốt truyện 3-5 câu có chứa [word|/ipa/|nghĩa]...",
+  "thuThachDucLo": "Cốt truyện đục lỗ dạng [___ (nghĩa) ___]...",
+  "cacTuKhoa": [
+    {
+      "tiengAnh": "...",
+      "phienAm": "...",
+      "tiengViet": "...",
+      "lienTuong": "Mẹo âm thanh tương tự hoặc bắc cầu hình ảnh siêu độc đáo...",
+      "viDuNgan": "Câu ví dụ tiếng Anh ngắn gọn minh họa"
+    }
+  ]
+}`;
+
+    const raw = await callGemini(env, prompt, true);
+    return JSON.parse(cleanJson(raw));
+}
+
+
