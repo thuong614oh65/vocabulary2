@@ -486,29 +486,29 @@ function hienThiGiaiDoanHocThuoc() {
             const viText = s.viSat || "Đang cập nhật bản dịch cho câu này...";
             return `
                 <div class="sentence-bilingual-card p-3 mb-3 bg-white rounded-3 border shadow-sm">
-                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold px-2 py-1">
-                            Câu ${s.index + 1} (${s.words.length} từ)
-                        </span>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="phatAmVanBan('${escapeJs(s.en)}')">
-                                🔊 Nghe câu
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1">
+                            <!-- DÒNG 1: TIẾNG ANH (TỪNG TỪ CÓ THỂ CLICK NGHE) -->
+                            <div class="sentence-en-text fs-5 fw-bold text-dark mb-1">
+                                ${s.words.map(w => `
+                                    ${w.prefix ? `<span>${escapeHtml(w.prefix)}</span>` : ""}
+                                    <span class="study-word" onclick="docTu('${escapeJs(w.clean)}')" title="Bấm nghe phát âm '${escapeHtml(w.clean)}'">${escapeHtml(w.clean)}</span>
+                                    ${w.trailing ? `<span class="text-secondary">${escapeHtml(w.trailing)}</span>` : ""}
+                                `).join(" ")}
+                            </div>
+
+                            <!-- DÒNG 2: TIẾNG VIỆT DỊCH SÁT NGAY DƯỚI DÒNG TIẾNG ANH -->
+                            <div class="sentence-vi-line text-success fw-semibold" id="viSatSentence_${s.index}">
+                                <span class="vi-text-content">${escapeHtml(viText)}</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
+                            <span class="badge bg-light text-secondary border small">Câu ${s.index + 1}</span>
+                            <button type="button" class="btn btn-sm btn-outline-success border-0 px-2 py-1" onclick="phatAmVanBan('${escapeJs(s.en)}')" title="Nghe câu ${s.index + 1}">
+                                🔊
                             </button>
                         </div>
-                    </div>
-
-                    <!-- DÒNG 1: TIẾNG ANH (TỪNG TỪ CÓ THỂ CLICK NGHE) -->
-                    <div class="sentence-en-text fs-5 fw-bold text-dark mb-2">
-                        ${s.words.map(w => `
-                            ${w.prefix ? `<span>${escapeHtml(w.prefix)}</span>` : ""}
-                            <span class="study-word" onclick="docTu('${escapeJs(w.clean)}')" title="Bấm nghe phát âm '${escapeHtml(w.clean)}'">${escapeHtml(w.clean)}</span>
-                            ${w.trailing ? `<span class="text-secondary">${escapeHtml(w.trailing)}</span>` : ""}
-                        `).join(" ")}
-                    </div>
-
-                    <!-- DÒNG 2: TIẾNG VIỆT DỊCH SÁT RIÊNG CÂU NÀY -->
-                    <div class="sentence-vi-literal p-2 rounded" id="viSatSentence_${s.index}">
-                        <span class="fw-bold me-1 text-success">🇻🇳 Dịch câu:</span> <span class="vi-text-content">${escapeHtml(viText)}</span>
                     </div>
                 </div>
             `;

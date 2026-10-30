@@ -1018,7 +1018,7 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luyện nhớ đoạn văn - Học thuộc &amp; Viết lại tức thì</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/luyen-nho-doan-van.css?v=4">
+    <link rel="stylesheet" href="/css/luyen-nho-doan-van.css?v=6">
 </head>
 <body class="bg-light">
 
@@ -1604,7 +1604,7 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/global-audio.js?v=4"></script>
-<script src="/js/luyen-nho-doan-van.js?v=4"></script>
+<script src="/js/luyen-nho-doan-van.js?v=6"></script>
 </body>
 </html>`;
 }
