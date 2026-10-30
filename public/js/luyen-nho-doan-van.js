@@ -81,7 +81,14 @@ function cleanWord(w) {
     return w.toLowerCase().replace(/^[^\w]+|[^\w]+$/g, "");
 }
 
-function tachDoanVanThanhCau(text, cauSongNgu = null) {
+function tachCacCauVanBan(text) {
+    if (!text) return [];
+    return (text.match(/[^.!?\n]+[.!?\n]+(\s+|$)|[^.!?\n]+$/g) || [text])
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+function tachDoanVanThanhCau(text, cauSongNgu = null, dichVi = "") {
     if (!text) return [];
 
     let cleanSentences = [];
@@ -92,11 +99,13 @@ function tachDoanVanThanhCau(text, cauSongNgu = null) {
             viSat: (c.viSat || c.vi || "").trim()
         }));
     } else {
-        const rawSentences = text.match(/[^.!?\n]+[.!?\n]+(\s+|$)|[^.!?\n]+$/g) || [text];
-        cleanSentences = rawSentences.map(s => s.trim()).filter(Boolean).map((s, idx) => ({
+        const rawEnSentences = tachCacCauVanBan(text);
+        const rawViSentences = tachCacCauVanBan(dichVi);
+
+        cleanSentences = rawEnSentences.map((s, idx) => ({
             index: idx,
             en: s,
-            viSat: ""
+            viSat: (rawViSentences[idx] || "").trim()
         }));
     }
 
@@ -464,17 +473,17 @@ function hienThiGiaiDoanHocThuoc() {
     if (!cardHocThuoc) return;
     cardHocThuoc.style.display = "block";
 
-    sentencesList = tachDoanVanThanhCau(currentParagraph.noiDungEn, currentParagraph.cauSongNgu);
+    sentencesList = tachDoanVanThanhCau(currentParagraph.noiDungEn, currentParagraph.cauSongNgu, currentParagraph.dichVi);
     allWordsList = sentencesList.flatMap(s => s.words);
 
     document.getElementById("tieuDeHocThuoc").textContent = currentParagraph.tieuDe || "Đoạn văn học thuộc";
     document.getElementById("badgeSoTuHocThuoc").textContent = `${allWordsList.length} từ • ${sentencesList.length} câu`;
 
-    // Hiển thị danh sách các câu: 1 dòng tiếng Anh + 1 dòng tiếng Việt dịch sát từng từ
+    // Hiển thị danh sách các câu: 1 dòng tiếng Anh + 1 dòng tiếng Việt dịch sát của ĐÚNG CÂU ĐÓ
     const boxText = document.getElementById("boxVanBanHocThuoc");
     if (boxText) {
         boxText.innerHTML = sentencesList.map(s => {
-            const viText = s.viSat || currentParagraph.dichVi || "Đang cập nhật bản dịch sát...";
+            const viText = s.viSat || "Đang cập nhật bản dịch cho câu này...";
             return `
                 <div class="sentence-bilingual-card p-3 mb-3 bg-white rounded-3 border shadow-sm">
                     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
@@ -497,13 +506,17 @@ function hienThiGiaiDoanHocThuoc() {
                         `).join(" ")}
                     </div>
 
-                    <!-- DÒNG 2: TIẾNG VIỆT DỊCH SÁT TỪNG TỪ -->
-                    <div class="sentence-vi-literal p-2 rounded">
-                        <span class="fw-bold me-1">🇻🇳 Dịch sát từng từ:</span> ${escapeHtml(viText)}
+                    <!-- DÒNG 2: TIẾNG VIỆT DỊCH SÁT RIÊNG CÂU NÀY -->
+                    <div class="sentence-vi-literal p-2 rounded" id="viSatSentence_${s.index}">
+                        <span class="fw-bold me-1 text-success">🇻🇳 Dịch câu:</span> <span class="vi-text-content">${escapeHtml(viText)}</span>
                     </div>
                 </div>
             `;
         }).join("");
+    }
+
+    if (sentencesList.some(s => !s.viSat)) {
+        boSungDichSatTungCau(currentParagraph.noiDungEn);
     }
 
     // Từ vựng chính
@@ -530,6 +543,37 @@ function hienThiGiaiDoanHocThuoc() {
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function boSungDichSatTungCau(noiDungEn) {
+    if (!noiDungEn) return;
+    try {
+        const resp = await fetch("/api/doan-van/phan-tich", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ noiDungEn })
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.ok && data.data && Array.isArray(data.data.cauSongNgu)) {
+            data.data.cauSongNgu.forEach((csn, idx) => {
+                const vi = (csn.viSat || csn.vi || "").trim();
+                if (sentencesList[idx] && vi) {
+                    sentencesList[idx].viSat = vi;
+                    const el = document.querySelector(`#viSatSentence_${idx} .vi-text-content`);
+                    if (el) el.textContent = vi;
+                }
+            });
+            if (sentencesList[currentSentenceIdx] && sentencesList[currentSentenceIdx].viSat) {
+                const promptEl = document.getElementById("promptCauTiengViet");
+                if (promptEl) {
+                    promptEl.textContent = sentencesList[currentSentenceIdx].viSat;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Lỗi cập nhật dịch từng câu:", e);
+    }
 }
 
 function quayLaiThietLap() {
@@ -590,10 +634,10 @@ function chuyenDenCauDich(idx) {
         }).join("");
     }
 
-    // Hiển thị câu tiếng Việt sát nghĩa
+    // Hiển thị câu tiếng Việt sát nghĩa của CHÍNH CÂU NÀY
     const promptEl = document.getElementById("promptCauTiengViet");
     if (promptEl) {
-        promptEl.textContent = sentence.viSat || currentParagraph.dichVi || "Dịch câu này sang tiếng Anh:";
+        promptEl.textContent = sentence.viSat || `Dịch câu ${idx + 1} sang tiếng Anh:`;
     }
 
     // Input box
