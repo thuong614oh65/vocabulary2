@@ -103,8 +103,8 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
     html = html.replace(/th:value="\$\{hocDTO\.denTu != null[\s\S]*?\}"/, `value="${denTu}"`);
     html = html.replace(/th:field="\*\s*\{tenChuDe\}"/g, 'value=""');
     html = html.replace(/th:field="\*\s*\{chuDeTuJson\}"/g, 'value=""');
-    html = html.replace('/css/hoc.css?v=7', '/css/hoc.css?v=9');
-    html = html.replace('/js/hoc.js?v=8', '/js/hoc.js?v=9');
+    html = html.replace('/css/hoc.css?v=7', '/css/hoc.css?v=10');
+    html = html.replace('/js/hoc.js?v=8', '/js/hoc.js?v=10');
 
     // Render #bangTheoBo rows
     const rowsTheoBo = dsTheoBo.map((tu, idx) => {
@@ -192,7 +192,17 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
                     title="Phương pháp siêu trí nhớ: Bức tranh tâm trí sinh động &amp; Cốt truyện móc xích">
                 🎬 Kể chuyện ghi nhớ (AI Story)
             </button>`;
-    html = html.replace(/(⚡\s*Luyện phản xạ[\s\S]*?<\/button>)/, `$1\n            ${btnAiStoryMain}`);
+    const actionGroupIdx = html.indexOf('btn-action-group');
+    if (actionGroupIdx !== -1) {
+        const phanXaIdx = html.indexOf('value="phan-xa"', actionGroupIdx);
+        if (phanXaIdx !== -1) {
+            const endPhanXa = html.indexOf('</button>', phanXaIdx);
+            if (endPhanXa !== -1) {
+                const insertPos = endPhanXa + '</button>'.length;
+                html = html.slice(0, insertPos) + '\n\n            ' + btnAiStoryMain + html.slice(insertPos);
+            }
+        }
+    }
 
     // Inject "Kể chuyện ghi nhớ (AI Story)" button into khungBangChuDe
     const btnAiStoryChuDe = `<button type="button"
@@ -201,7 +211,14 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
                                 title="Kể chuyện ghi nhớ 10 từ mới thuộc chủ đề này">
                             🎬 Kể chuyện ghi nhớ (AI Story)
                         </button>`;
-    html = html.replace(/(🔄\s*Đổi 10 từ khác[\s\S]*?<\/button>)/, `$1\n                        ${btnAiStoryChuDe}`);
+    const doiTuKhacIdx = html.indexOf('deXuatTuMoiTheoChuDe(true)');
+    if (doiTuKhacIdx !== -1) {
+        const endBtn = html.indexOf('</button>', doiTuKhacIdx);
+        if (endBtn !== -1) {
+            const insertPos = endBtn + '</button>'.length;
+            html = html.slice(0, insertPos) + '\n                        ' + btnAiStoryChuDe + html.slice(insertPos);
+        }
+    }
 
     // Modal Kể chuyện ghi nhớ (AI Story Mnemonic)
     const modalStoryHtml = `
