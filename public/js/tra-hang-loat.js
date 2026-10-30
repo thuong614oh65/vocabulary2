@@ -210,77 +210,178 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // =========================================================
-    // SUBMIT TRA HÀNG LOẠT & QUÉT ĐOẠN VĂN
+    // XỬ LÝ SUBMIT FORM BẰNG NÚT TRA TỪ MỚI (AJAX KHÔNG TẢI LẠI TRANG)
     // =========================================================
-    const formTraHangLoat = document.getElementById("formTraTu") || document.querySelector('form[action$="/tra-hang-loat"]');
-    if (formTraHangLoat) {
-        formTraHangLoat.addEventListener("submit", function (e) {
-            const textarea = document.getElementById("noiDung");
-            if (!textarea || !textarea.value.trim()) {
-                e.preventDefault();
-                hienThongBao("Vui lòng nhập ít nhất một từ vựng hoặc đoạn văn trước khi tra!", "danger");
-                if (textarea) textarea.focus();
-                return false;
-            }
-            const btn = document.getElementById("btnTraHangLoat");
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> ⚡ Đang tra cứu...';
-            }
+    const formTraTu = document.getElementById("formTraTu");
+    if (formTraTu) {
+        formTraTu.addEventListener("submit", function (e) {
+            e.preventDefault();
+            thucHienTraTuMoi();
         });
     }
 
 });
 
 // =========================================================
-// CHUYỂN CHẾ ĐỘ NHẬP: DANH SÁCH TỪ vs ĐOẠN VĂN
+// HÀM TRA TỪ MỚI THÔNG MINH (1 NÚT DUY NHẤT: AJAX TẠI CHỖ, KHÔNG CHUYỂN TRANG)
 // =========================================================
-function chuyenCheDoThemTu(cheDo) {
-    const inputCheDo = document.getElementById("cheDoQuet");
+async function thucHienTraTuMoi() {
     const textarea = document.getElementById("noiDung");
-    const btnTabTu = document.getElementById("btnTabTu");
-    const btnTabDoanVan = document.getElementById("btnTabDoanVan");
-
-    if (cheDo === "doan-van") {
-        if (inputCheDo) inputCheDo.value = "doan-van";
-        if (btnTabTu) { btnTabTu.className = "btn btn-outline-primary fw-semibold"; }
-        if (btnTabDoanVan) { btnTabDoanVan.className = "btn btn-primary fw-semibold"; }
-        if (textarea) {
-            textarea.placeholder = "Dán hoặc viết đoạn văn tiếng Anh vào đây. Hệ thống sẽ tự động lọc bỏ các tên riêng và những từ vựng đã có trong tài khoản của bạn...";
-            textarea.focus();
-        }
-    } else {
-        if (inputCheDo) inputCheDo.value = "tu";
-        if (btnTabTu) { btnTabTu.className = "btn btn-primary fw-semibold"; }
-        if (btnTabDoanVan) { btnTabDoanVan.className = "btn btn-outline-primary fw-semibold"; }
-        if (textarea) {
-            textarea.placeholder = "hello\napple\ncomputer\n(Hoặc thêm ảnh/file ở trên để hệ thống tự điền)";
-            textarea.focus();
-        }
-    }
-}
-window.chuyenCheDoThemTu = chuyenCheDoThemTu;
-
-function thucHienQuetDoanVan() {
-    const textarea = document.getElementById("noiDung");
-    if (!textarea || !textarea.value.trim()) {
-        alert("Vui lòng dán hoặc viết đoạn văn tiếng Anh cần quét từ mới!");
+    const noiDung = textarea ? textarea.value.trim() : "";
+    if (!noiDung) {
+        hienThongBao("Vui lòng nhập hoặc dán nội dung văn bản / danh sách từ trước khi tra!", "danger");
         if (textarea) textarea.focus();
         return;
     }
-    const inputCheDo = document.getElementById("cheDoQuet");
-    if (inputCheDo) inputCheDo.value = "doan-van";
 
-    const btn = document.getElementById("btnQuetDoanVan");
+    const btn = document.getElementById("btnTraTuMoi");
+    const inlineLoadingBox = document.getElementById("inlineLoadingBox");
+    const khuVucKetQua = document.getElementById("khuVucKetQua");
+
+    const originalBtnHtml = btn ? btn.innerHTML : "";
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> 🤖 Đang quét từ mới & lọc tên riêng...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> <span>Đang tra từ...</span>';
+    }
+    if (inlineLoadingBox) {
+        inlineLoadingBox.style.display = "block";
     }
 
-    const form = document.getElementById("formTraTu") || textarea.closest("form");
-    if (form) form.submit();
+    try {
+        const resp = await fetch("/api/tu-vung/tra-tu-moi", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ noiDung })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+            throw new Error(data.error || "Không thể tra từ mới. Vui lòng thử lại!");
+        }
+
+        const ketQua = data.ketQua || [];
+        if (ketQua.length === 0) {
+            hienThongBao("Không tìm thấy từ mới nào chưa có trong tài khoản của bạn!", "info");
+            if (khuVucKetQua) khuVucKetQua.innerHTML = "";
+            return;
+        }
+
+        renderKetQuaTable(ketQua, data.dsBo || [], data.tenBoGoiY || "Bộ mới", data.isParagraph);
+        hienThongBao(`Đã tìm thấy ${ketQua.length} từ vựng mới!`, "success");
+
+        if (khuVucKetQua) {
+            khuVucKetQua.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    } catch (err) {
+        console.error("Lỗi tra từ mới:", err);
+        hienThongBao(err.message || "Đã xảy ra lỗi khi tra từ mới!", "danger");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+        }
+        if (inlineLoadingBox) {
+            inlineLoadingBox.style.display = "none";
+        }
+    }
 }
-window.thucHienQuetDoanVan = thucHienQuetDoanVan;
+window.thucHienTraTuMoi = thucHienTraTuMoi;
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function escAttr(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escJs(s) {
+    return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+function renderKetQuaTable(ketQua, dsBo, tenBoGoiY, isParagraph) {
+    const khuVuc = document.getElementById("khuVucKetQua");
+    if (!khuVuc) return;
+
+    const boSelectHtml = (dsBo && dsBo.length > 0) ? `
+        <div class="col-md-6">
+            <label class="form-label fw-bold text-primary mb-1">📁 Hoặc lưu vào bộ đã có sẵn:</label>
+            <select class="form-select shadow-sm" id="selectBoLuu" name="boId" onchange="xuLyChonBo(this.value)">
+                <option value="">-- Lưu thành bộ mới (theo tên ở trên) --</option>
+                ${dsBo.map(bo => `<option value="${bo.id}">${escHtml(bo.tenBo)} (${bo.soLuongTu} từ)</option>`).join("")}
+            </select>
+        </div>` : "";
+
+    const thongBaoQuet = isParagraph ? `
+        <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2 shadow-sm rounded-3">
+            <span class="fs-4">✨</span>
+            <div>
+                <strong>Chế độ quét từ mới từ đoạn văn:</strong> Đã tự động lọc bỏ các tên riêng và những từ vựng đã có trong các bộ từ của bạn!
+            </div>
+        </div>` : "";
+
+    const rowsHtml = ketQua.map((tu, idx) => `<tr>
+        <td class="text-center text-muted fw-bold">${idx + 1}</td>
+        <td><input type="hidden" name="tiengAnh" value="${escAttr(tu.tiengAnh)}" class="val-tieng-anh"><strong>${escHtml(tu.tiengAnh)}</strong></td>
+        <td><input class="form-control form-control-sm" name="tiengViet" value="${escAttr(tu.tiengViet || '')}"></td>
+        <td><input class="form-control form-control-sm" name="phienAm" value="${escAttr(tu.phienAm || '')}"></td>
+        <td><input class="form-control form-control-sm" name="viDu" value="${escAttr(tu.viDu || '')}"></td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="docTu('${escJs(tu.tiengAnh)}')">🔊</button>
+        </td>
+        <td class="text-center">
+            <input type="checkbox" class="form-check-input chk-luu-item" checked onchange="capNhatDongLuu(this)">
+        </td>
+    </tr>`).join("");
+
+    khuVuc.innerHTML = `
+    <form action="/luu-bo" method="post" id="formLuuBo">
+        <div class="main-card mt-4">
+            ${thongBaoQuet}
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h4 class="m-0 text-success fw-bold">KẾT QUẢ TỪ MỚI (<span>${ketQua.length}</span> từ)</h4>
+                <div class="small text-muted">Bỏ tích những từ bạn không muốn lưu</div>
+            </div>
+            <div class="row g-3 mb-3 p-3 bg-light rounded-3 border align-items-center">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-success mb-1">🏷️ Tên bộ từ vựng:</label>
+                    <input type="text" class="form-control shadow-sm" name="tenBo" id="inputTenBo" placeholder="${escAttr(tenBoGoiY || 'Bộ mới')}">
+                </div>
+                ${boSelectHtml}
+            </div>
+            <div class="table-responsive shadow-sm rounded-3">
+                <table class="table table-bordered align-middle table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px;" class="text-center">STT</th>
+                            <th style="width: 180px;">English</th>
+                            <th style="width: 220px;">Nghĩa</th>
+                            <th style="width: 160px;">Phiên âm</th>
+                            <th>Ví dụ</th>
+                            <th style="width: 60px;" class="text-center">Đọc</th>
+                            <th style="width: 70px;" class="text-center">
+                                <label class="d-inline-flex align-items-center gap-1 m-0" style="cursor: pointer;" title="Chọn / Bỏ chọn tất cả">
+                                    <span>Lưu</span>
+                                    <input type="checkbox" id="chkLuuTatCa" checked onchange="toggleChonTatCaLuu(this.checked)">
+                                </label>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                <span class="text-muted small">Đã chọn: <strong id="lblSoTuDuocChon" class="text-success">${ketQua.length}</strong> / ${ketQua.length} từ</span>
+                <button type="submit" class="btn btn-success px-4 py-2 fw-bold shadow-sm" id="btnXacNhanLuu">💾 Lưu các từ đã chọn vào CSDL</button>
+            </div>
+        </div>
+    </form>`;
+
+    capNhatDemTuDuocChon();
+}
 
 // =========================================================
 // CHỌN / BỎ CHỌN TỪ TRONG KẾT QUẢ ĐỂ LƯU

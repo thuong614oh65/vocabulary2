@@ -819,8 +819,10 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
     if (pathname === "/tra-hang-loat" && method === "POST") {
         const formData = await request.formData();
         const noiDung = formData.get("noiDung") || "";
-        const cheDoQuet = formData.get("cheDoQuet") || "";
-        const isParagraph = cheDoQuet === "doan-van" || ((noiDung.includes(". ") || noiDung.includes("? ") || noiDung.includes("! ")) && noiDung.trim().split(/\s+/).length >= 10);
+        const lines = noiDung.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+        const isMultipleWordLines = lines.length > 1 && lines.every(l => l.split(/\s+/).length <= 2);
+        const totalWords = noiDung.trim().split(/\s+/).filter(Boolean).length;
+        const isParagraph = cheDoQuet === "doan-van" || (!isMultipleWordLines && (totalWords >= 5 || lines.some(l => l.split(/\s+/).length >= 4)));
         const [dsBo, tatCaTu] = await Promise.all([
             getBoTuVungByUser(env, taiKhoanId),
             getTatCaTuByUser(env, taiKhoanId)
@@ -1769,6 +1771,52 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             return jsonResponse({ ok: true, message: "Đã xóa bài đã lưu" }, 200, sid);
         } catch (err) {
             return jsonResponse({ error: err.message }, 500, sid);
+        }
+    }
+
+    // =========================================================
+    // API TRA TỪ MỚI THÔNG MINH (1 NÚT DUY NHẤT: TỰ ĐỘNG NHẬN DIỆN DANH SÁCH TỪ HOẶC ĐOẠN VĂN)
+    // =========================================================
+    if (pathname === "/api/tu-vung/tra-tu-moi" && method === "POST") {
+        try {
+            const body = await request.json();
+            const noiDung = (body.noiDung || "").trim();
+            if (!noiDung) {
+                return jsonResponse({ error: "Vui lòng nhập danh sách từ hoặc đoạn văn!" }, 400, sid);
+            }
+
+            const [dsBo, tatCaTu] = await Promise.all([
+                getBoTuVungByUser(env, taiKhoanId),
+                getTatCaTuByUser(env, taiKhoanId)
+            ]);
+
+            // Tự động nhận diện thông minh: Danh sách từ (1-2 từ/dòng) vs Đoạn văn / Câu văn
+            const lines = noiDung.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+            const isMultipleWordLines = lines.length > 1 && lines.every(l => l.split(/\s+/).length <= 2);
+            const totalWords = noiDung.trim().split(/\s+/).filter(Boolean).length;
+            const isParagraph = !isMultipleWordLines && (totalWords >= 5 || lines.some(l => l.split(/\s+/).length >= 4));
+
+            let ketQua = [];
+            if (isParagraph) {
+                ketQua = await trichXuatTuMoiTuDoanVan(env, noiDung, tatCaTu);
+            } else {
+                const words = noiDung
+                    .split(/[\r\n,;]+/)
+                    .map(w => w.trim())
+                    .filter(Boolean);
+                ketQua = await traTuHangLoat(env, words);
+            }
+
+            return jsonResponse({
+                ok: true,
+                ketQua,
+                isParagraph,
+                dsBo,
+                tenBoGoiY: `Bộ ${dsBo.length + 1}`
+            }, 200, sid);
+        } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
+            return jsonResponse({ error: "Lỗi tra từ mới: " + (err.message || String(err)) }, 500, sid);
         }
     }
 

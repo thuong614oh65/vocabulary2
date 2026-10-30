@@ -605,37 +605,32 @@ ${alertHtml}
             <div class="spinner-border spinner-border-sm text-success" role="status"></div>
             <span id="loadingText">Đang nhận diện từ vựng từ ảnh bằng AI...</span>
         </div>
-        <form action="/tra-hang-loat" method="post" id="formTraTu">
-            <input type="hidden" name="cheDoQuet" id="cheDoQuet" value="${laQuetDoanVan ? 'doan-van' : 'tu'}">
-            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                <label class="form-label fw-bold mb-0">Nội dung văn bản / Danh sách từ:</label>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn ${laQuetDoanVan ? 'btn-outline-primary' : 'btn-primary'} fw-semibold" id="btnTabTu" onclick="chuyenCheDoThemTu('tu')">
-                        📋 Danh sách từ (1 từ/dòng)
-                    </button>
-                    <button type="button" class="btn ${laQuetDoanVan ? 'btn-primary' : 'btn-outline-primary'} fw-semibold" id="btnTabDoanVan" onclick="chuyenCheDoThemTu('doan-van')">
-                        📑 Quét từ mới từ đoạn văn
-                    </button>
-                </div>
+        <form id="formTraTu" onsubmit="event.preventDefault(); thucHienTraTuMoi();">
+            <div class="mb-2">
+                <label class="form-label fw-bold text-dark mb-0 fs-6">📝 Nội dung văn bản hoặc danh sách từ tiếng Anh:</label>
+                <div class="text-muted small mt-1">Hệ thống sẽ tự động nhận diện thông minh, lọc bỏ tên riêng và các từ vựng đã có trong tài khoản của bạn.</div>
             </div>
-            <textarea id="noiDung" name="noiDung" class="form-control" rows="10" placeholder="${laQuetDoanVan ? 'Dán hoặc viết đoạn văn tiếng Anh vào đây. Hệ thống sẽ tự động quét, loại bỏ tên riêng và từ đã có trong tài khoản...' : 'hello&#10;apple&#10;computer&#10;(Hoặc thêm ảnh/file ở trên để hệ thống tự điền)'}">${esc(noiDung)}</textarea>
+            <textarea id="noiDung" name="noiDung" class="form-control" rows="10" placeholder="Dán hoặc viết đoạn văn hoặc danh sách từ tiếng Anh vào đây (ví dụ: một bài báo, đoạn hội thoại, hay danh sách từ 1 từ/dòng)...">${esc(noiDung)}</textarea>
+            
+            <div id="inlineLoadingBox" class="p-3 my-3 bg-white rounded-3 border shadow-sm text-center" style="display: none;">
+                <div class="spinner-border text-primary me-2" role="status" style="width: 1.8rem; height: 1.8rem;"></div>
+                <span class="fw-semibold text-secondary" id="inlineLoadingText">Đang phân tích kỹ lưỡng và tra từ mới từ văn bản...</span>
+            </div>
+
             <div class="mt-4 d-flex gap-2 flex-wrap align-items-center">
-                <button type="submit" id="btnTraHangLoat" class="btn btn-primary px-4 fw-bold">
-                    🔍 Tra hàng loạt
+                <button type="button" id="btnTraTuMoi" class="btn btn-primary px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="thucHienTraTuMoi()">
+                    <span>🔍 Tra từ mới</span>
                 </button>
-                <button type="button" id="btnQuetDoanVan" class="btn btn-success px-4 fw-bold" onclick="thucHienQuetDoanVan()">
-                    ⚡ Quét từ mới từ đoạn văn
-                </button>
-                <a href="/" class="btn btn-secondary">🏠 Trang chủ</a>
-                <a href="/tra-tu" class="btn btn-outline-primary">🔍 Tra từ &amp; Dịch</a>
-                <a href="/quan-ly-tu" class="btn btn-outline-success">📋 Quản lí từ</a>
+                <a href="/" class="btn btn-secondary px-3 py-2">🏠 Trang chủ</a>
+                <a href="/tra-tu" class="btn btn-outline-primary px-3 py-2">🔍 Tra từ &amp; Dịch</a>
+                <a href="/quan-ly-tu" class="btn btn-outline-success px-3 py-2">📋 Quản lí từ</a>
             </div>
         </form>
     </div>
-    <form action="/luu-bo" method="post" id="formLuuBo">${ketQuaHtml}</form>
+    <div id="khuVucKetQua">${ketQuaHtml ? `<form action="/luu-bo" method="post" id="formLuuBo">${ketQuaHtml}</form>` : ""}</div>
 </div>
-<script src="/js/global-audio.js?v=4"></script>
-<script src="/js/them-tu.js?v=4"></script>
+<script src="/js/global-audio.js?v=5"></script>
+<script src="/js/them-tu.js?v=5"></script>
 </body>
 </html>`;
 }
