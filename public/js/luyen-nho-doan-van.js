@@ -1039,15 +1039,22 @@ function batDauBuoc3NhapToanBai() {
     document.getElementById("tieuDeToanBai").textContent = currentParagraph.tieuDe || "Nhập toàn bài & Nộp chấm";
     document.getElementById("lblTongSoTuToanBai").textContent = allWordsList.length;
 
-    // Hiển thị danh sách các câu tiếng Việt sát nghĩa làm sườn tham khảo
+    // Ẩn sườn tham khảo mặc định (nếu cần thì người học bật lên xem)
+    const wrapperRef = document.getElementById("wrapperThamKhaoToanBai");
+    if (wrapperRef) wrapperRef.style.display = "none";
+    const iconEl = document.getElementById("iconToggleGoiY");
+    const lblEl = document.getElementById("lblToggleGoiY");
+    if (iconEl) iconEl.textContent = "👁️";
+    if (lblEl) lblEl.textContent = "Xem sườn gợi ý tiếng Việt";
+
+    // Hiển thị đoạn văn tiếng Việt hoàn chỉnh thành một bài trọn vẹn (không đánh số 1, 2, 3...)
     const boxRef = document.getElementById("boxThamKhaoToanBai");
     if (boxRef) {
-        boxRef.innerHTML = sentencesList.map(s => `
-            <div class="mb-2 pb-1 border-bottom border-light">
-                <span class="badge bg-secondary-subtle text-secondary me-1">${s.index + 1}</span>
-                <span class="text-dark fw-semibold">${escapeHtml(s.viSat || currentParagraph.dichVi || "")}</span>
-            </div>
-        `).join("");
+        let fullVi = (currentParagraph.dichVi || "").trim();
+        if (!fullVi && Array.isArray(sentencesList) && sentencesList.length > 0) {
+            fullVi = sentencesList.map(s => (s.viSat || "").trim()).filter(Boolean).join(" ");
+        }
+        boxRef.textContent = fullVi || "Chưa có bản dịch cho bài này.";
     }
 
     const inp = document.getElementById("inputToanBai");
@@ -1103,6 +1110,25 @@ function goiYTuTiepTheoToanBai() {
     inp.setSelectionRange(inp.value.length, inp.value.length);
 }
 window.goiYTuTiepTheoToanBai = goiYTuTiepTheoToanBai;
+
+function toggleGoiYToanBai() {
+    const wrapper = document.getElementById("wrapperThamKhaoToanBai");
+    const iconEl = document.getElementById("iconToggleGoiY");
+    const lblEl = document.getElementById("lblToggleGoiY");
+    if (!wrapper) return;
+
+    const isHidden = (wrapper.style.display === "none" || !wrapper.style.display);
+    if (isHidden) {
+        wrapper.style.display = "block";
+        if (iconEl) iconEl.textContent = "🙈";
+        if (lblEl) lblEl.textContent = "Ẩn sườn gợi ý tiếng Việt";
+    } else {
+        wrapper.style.display = "none";
+        if (iconEl) iconEl.textContent = "👁️";
+        if (lblEl) lblEl.textContent = "Xem sườn gợi ý tiếng Việt";
+    }
+}
+window.toggleGoiYToanBai = toggleGoiYToanBai;
 
 function nopBaiToanBo() {
     if (!currentParagraph || !currentParagraph.noiDungEn) return;

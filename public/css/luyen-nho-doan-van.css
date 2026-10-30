@@ -313,3 +313,9 @@ body {
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
     transform: translateY(-1px);
 }
+
+.passage-complete-box {
+    background-color: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    line-height: 1.8;
+}

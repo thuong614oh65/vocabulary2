@@ -1018,7 +1018,7 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luyện nhớ đoạn văn - Học thuộc &amp; Viết lại tức thì</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/luyen-nho-doan-van.css?v=7">
+    <link rel="stylesheet" href="/css/luyen-nho-doan-van.css?v=8">
 </head>
 <body class="bg-light">
 
@@ -1394,14 +1394,23 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
 
         <div class="card-body p-4">
             
-            <!-- Reference Box: Sườn các câu tiếng Việt -->
+            <!-- Reference Box: Sườn đoạn văn tiếng Việt hoàn chỉnh (Ẩn mặc định, có nút bật/tắt khi cần) -->
             <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold text-dark small">🇻🇳 Dựa vào sườn các câu tiếng Việt dưới đây để nhập lại toàn bài tiếng Anh:</span>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-1 shadow-sm px-3" id="btnToggleGoiYToanBai" onclick="toggleGoiYToanBai()">
+                        <span id="iconToggleGoiY">👁️</span> <span id="lblToggleGoiY">Xem sườn gợi ý tiếng Việt</span>
+                    </button>
                     <span class="small text-muted">Tổng cộng: <strong id="lblTongSoTuToanBai">0</strong> từ</span>
                 </div>
-                <div class="passage-reference-box p-3 bg-light" id="boxThamKhaoToanBai">
-                    <!-- Sentences rendered by JS -->
+                <div id="wrapperThamKhaoToanBai" style="display:none;" class="mb-3">
+                    <div class="passage-complete-box p-3 bg-white rounded-3 border shadow-sm">
+                        <div class="small fw-bold text-success mb-2 d-flex align-items-center gap-1">
+                            <span>🇻🇳</span> <span>Đoạn văn tiếng Việt hoàn chỉnh:</span>
+                        </div>
+                        <p class="mb-0 text-dark fw-medium lh-lg fs-6" id="boxThamKhaoToanBai">
+                            <!-- Hiển thị đoạn văn hoàn chỉnh, không đánh số -->
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -1604,7 +1613,7 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/global-audio.js?v=4"></script>
-<script src="/js/luyen-nho-doan-van.js?v=7"></script>
+<script src="/js/luyen-nho-doan-van.js?v=8"></script>
 </body>
 </html>`;
 }
