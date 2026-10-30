@@ -44,12 +44,15 @@ body {
 }
 
 /* =========================================================
-   BƯỚC 1: ĐỌC HIỂU SONG NGỮ SÁT TỪNG TỪ (INTERLINEAR)
+   BƯỚC 1: ĐỌC HIỂU SONG NGỮ SÁT TỪNG TỪ (WORD-BY-WORD INTERLINEAR)
+   DÒNG TIẾNG ANH TRÊN, NGHĨA TIẾNG VIỆT NGAY DƯỚI TỪ ĐÓ
+   XUỐNG DÒNG: DÒNG TIẾNG ANH VÀ NGHĨA XONG MỚI ĐẾN DÒNG TIẾNG ANH TIẾP
    ========================================================= */
 
 .sentence-bilingual-card {
     transition: all 0.2s ease;
     border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
 }
 
 .sentence-bilingual-card:hover {
@@ -57,28 +60,83 @@ body {
     box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
 }
 
-.sentence-en-text {
-    font-size: 1.2rem;
-    line-height: 1.6;
-    color: #0f172a;
-    letter-spacing: 0.2px;
-    margin-bottom: 3px !important;
+.interlinear-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    align-items: flex-start;
+    padding: 6px 0;
+    line-height: normal;
 }
 
-.sentence-vi-line {
-    color: #15803d !important;
-    font-size: 1.05rem;
-    line-height: 1.6;
-    margin-top: 2px;
-    padding-left: 2px;
+.interlinear-unit {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.en-tok {
+    font-size: 1.22rem;
+    font-weight: 700;
+    color: #0f172a;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.en-tok:hover {
+    background-color: #e0e7ff;
+    border-color: #6366f1;
+    color: #4338ca;
+    transform: translateY(-1px);
+}
+
+.en-tok .punct-symbol {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.vi-tok {
+    font-size: 0.94rem;
+    font-weight: 600;
+    color: #15803d; /* Vibrant deep green for clear distinction */
+    margin-top: 4px;
+    padding: 0 4px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.vi-tok.is-loading {
+    color: #94a3b8;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.interlinear-punct {
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-left: -6px;
+    margin-right: 4px;
+    align-self: flex-start;
+    padding-top: 4px;
 }
 
 .sentence-vi-literal {
-    background-color: #f0fdfa;
-    border: 1px solid #ccfbf1;
-    color: #0f766e;
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #14532d;
     font-size: 1.05rem;
-    line-height: 1.7;
+    line-height: 1.6;
     border-radius: 8px;
 }
 

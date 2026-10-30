@@ -81,6 +81,62 @@ function cleanWord(w) {
     return w.toLowerCase().replace(/^[^\w]+|[^\w]+$/g, "");
 }
 
+// BỘ TỪ ĐIỂN ĐỐI CHIẾU TRỰC TIẾP TỪNG TỪ (WORD-BY-WORD INTERLINEAR GLOSS)
+const COMMON_WORD_GLOSS = {
+    // Đại từ & Chỉ định
+    "i": "tôi", "you": "bạn", "he": "anh ấy", "she": "cô ấy", "it": "nó", "we": "chúng tôi", "they": "họ",
+    "me": "tôi", "him": "anh ấy", "her": "cô ấy", "us": "chúng tôi", "them": "họ",
+    "my": "của tôi", "your": "của bạn", "his": "của anh ấy", "its": "của nó", "our": "của chúng tôi", "their": "của họ",
+    "mine": "của tôi", "yours": "của bạn", "hers": "của cô ấy", "ours": "của chúng tôi", "theirs": "của họ",
+    "this": "này", "that": "đó / rằng", "these": "những... này", "those": "những... đó",
+    // Giới từ & Trợ từ
+    "in": "trong", "on": "trên", "at": "tại", "to": "đến / đối với", "for": "cho / vì", "of": "của / các",
+    "with": "với", "by": "bởi / bằng", "from": "từ", "about": "về", "into": "vào trong",
+    "through": "qua", "after": "sau khi", "before": "trước khi", "between": "giữa", "under": "dưới",
+    "without": "mà không", "near": "gần", "around": "xung quanh", "outside": "bên ngoài", "inside": "bên trong",
+    // Liên từ
+    "and": "và", "or": "hoặc", "but": "nhưng", "so": "vì vậy", "because": "bởi vì",
+    "if": "nếu", "when": "khi", "while": "trong khi", "although": "mặc dù", "therefore": "do đó",
+    // Động từ to be & Trợ động từ
+    "is": "thì / là", "are": "là / thì", "was": "đã là", "were": "đã là", "be": "là / ở", "been": "được", "being": "đang",
+    "am": "là / tôi", "have": "có", "has": "có", "had": "đã có", "do": "làm", "does": "làm", "did": "đã làm",
+    "can": "có thể", "could": "có thể", "will": "sẽ", "would": "sẽ", "should": "nên", "must": "phải",
+    // Mạo từ & Số đếm
+    "a": "một", "an": "một", "the": "--", "one": "một", "two": "hai", "three": "ba", "first": "trước hết",
+    "second": "thứ hai", "third": "thứ ba", "couple": "vài / cặp", "few": "vài", "many": "nhiều", "much": "nhiều",
+    "more": "hơn", "most": "phần lớn", "all": "tất cả", "some": "một số", "lot": "nhiều",
+    // Các từ thông dụng trong đoạn văn mẫu & bài tập
+    "choosing": "chọn", "choose": "chọn", "chosen": "chọn", "hotel": "khách sạn", "hotels": "khách sạn",
+    "believe": "tin rằng", "believes": "tin rằng", "convenient": "thuận tiện", "convenience": "sự thuận tiện",
+    "location": "vị trí", "locations": "vị trí", "important": "quan trọng", "importance": "tầm quan trọng",
+    "wide": "rộng / nhiều", "range": "loạt / loại", "facilities": "tiện ích", "facility": "tiện ích",
+    "reasons": "lý do", "reason": "lý do", "staying": "ở lại", "stay": "ở", "saves": "tiết kiệm", "save": "tiết kiệm",
+    "time": "thời gian", "transportation": "đi lại", "costs": "chi phí", "cost": "chi phí",
+    "example": "ví dụ", "located": "nằm ở", "locate": "nằm", "city": "thành phố", "center": "trung tâm",
+    "subway": "tàu điện ngầm", "station": "ga", "easily": "dễ dàng", "easy": "dễ",
+    "walk": "đi bộ", "walking": "đi bộ", "famous": "nổi tiếng", "tourist": "du lịch",
+    "local": "địa phương", "restaurants": "nhà hàng", "restaurant": "nhà hàng", "shopping": "mua sắm",
+    "areas": "khu vực", "area": "khu vực", "getting": "bị / nhận", "get": "nhận",
+    "stuck": "kẹt", "traffic": "giao thông", "spending": "tiêu / dành", "spend": "dành",
+    "money": "tiền", "taxis": "taxi", "taxi": "taxi", "travel": "du lịch",
+    "exploring": "khám phá", "explore": "khám phá", "destination": "điểm đến", "destinations": "điểm đến",
+    "use": "dùng / sử dụng", "room": "phòng", "rooms": "phòng", "sleep": "ngủ", "rest": "nghỉ ngơi",
+    "night": "ban đêm", "day": "ban ngày", "extra": "bổ sung", "swimming": "bơi", "pool": "hồ bơi",
+    "gym": "phòng gym", "luxury": "sang trọng", "spa": "spa", "really": "thực sự", "necessary": "cần thiết",
+    "prefer": "thích hơn", "not": "không", "no": "không", "pay": "trả", "fees": "phí", "fee": "phí",
+    "definitely": "chắc chắn", "prioritize": "ưu tiên", "booking": "đặt phòng", "book": "đặt"
+};
+
+function layNghiaTuTucThi(cleanWordStr) {
+    if (!cleanWordStr) return "";
+    const low = cleanWordStr.toLowerCase();
+    if (COMMON_WORD_GLOSS[low]) return COMMON_WORD_GLOSS[low];
+    if (low.endsWith("s") && COMMON_WORD_GLOSS[low.slice(0, -1)]) return COMMON_WORD_GLOSS[low.slice(0, -1)];
+    if (low.endsWith("ed") && COMMON_WORD_GLOSS[low.slice(0, -2)]) return COMMON_WORD_GLOSS[low.slice(0, -2)];
+    if (low.endsWith("ing") && COMMON_WORD_GLOSS[low.slice(0, -3)]) return COMMON_WORD_GLOSS[low.slice(0, -3)];
+    return "";
+}
+
 function tachCacCauVanBan(text) {
     if (!text) return [];
     return (text.match(/[^.!?\n]+[.!?\n]+(\s+|$)|[^.!?\n]+$/g) || [text])
@@ -96,16 +152,19 @@ function tachDoanVanThanhCau(text, cauSongNgu = null, dichVi = "") {
         cleanSentences = cauSongNgu.map((c, idx) => ({
             index: idx,
             en: (c.en || "").trim(),
-            viSat: (c.viSat || c.vi || "").trim()
+            viSat: (c.viSat || c.vi || "").trim(),
+            tuTungTu: Array.isArray(c.tuTungTu) ? c.tuTungTu : null
         }));
     } else {
         const rawEnSentences = tachCacCauVanBan(text);
         const rawViSentences = tachCacCauVanBan(dichVi);
+        const hasMatchingVi = rawViSentences.length >= rawEnSentences.length;
 
         cleanSentences = rawEnSentences.map((s, idx) => ({
             index: idx,
             en: s,
-            viSat: (rawViSentences[idx] || "").trim()
+            viSat: hasMatchingVi ? (rawViSentences[idx] || "").trim() : "",
+            tuTungTu: null
         }));
     }
 
@@ -136,6 +195,7 @@ function tachDoanVanThanhCau(text, cauSongNgu = null, dichVi = "") {
             index: sIdx,
             en: sObj.en,
             viSat: sObj.viSat,
+            tuTungTu: sObj.tuTungTu,
             words: words,
             userAnswer: "",
             score: null,
@@ -463,6 +523,41 @@ window.xoaBaiDaLuu = xoaBaiDaLuu;
 // 5. BƯỚC 1: ĐỌC HIỂU SONG NGỮ SÁT TỪNG TỪ (INTERLINEAR)
 // =========================================================
 
+function renderInterlinearWords(s) {
+    const tuTungTuMap = new Map();
+    if (Array.isArray(s.tuTungTu)) {
+        s.tuTungTu.forEach(item => {
+            if (item && item.en) {
+                tuTungTuMap.set(cleanWord(item.en), (item.vi || "").trim());
+            }
+        });
+    }
+
+    return s.words.map((w, wIdx) => {
+        const clean = cleanWord(w.clean || w.raw);
+        const isPunctOnly = !clean || /^[.,!?;:'"“”()\-–—]+$/.test(w.raw);
+
+        if (isPunctOnly) {
+            return `<span class="interlinear-punct">${escapeHtml(w.raw)}</span>`;
+        }
+
+        const gloss = tuTungTuMap.get(clean) || (s.tuTungTu && s.tuTungTu[wIdx]?.vi) || layNghiaTuTucThi(clean);
+
+        return `
+            <div class="interlinear-unit">
+                <div class="en-tok study-word" onclick="docTu('${escapeJs(clean)}')" title="Bấm nghe '${escapeHtml(clean)}'">
+                    ${w.prefix ? `<span class="punct-symbol">${escapeHtml(w.prefix)}</span>` : ""}
+                    <span class="tok-text">${escapeHtml(w.clean || w.raw)}</span>
+                    ${w.trailing ? `<span class="punct-symbol">${escapeHtml(w.trailing)}</span>` : ""}
+                </div>
+                <div class="vi-tok ${gloss ? "" : "is-loading"}" id="viTok_${s.index}_${wIdx}">
+                    ${escapeHtml(gloss || "...")}
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
 function hienThiGiaiDoanHocThuoc() {
     dungPhatAm();
     document.getElementById("cardSetup").style.display = "none";
@@ -479,43 +574,38 @@ function hienThiGiaiDoanHocThuoc() {
     document.getElementById("tieuDeHocThuoc").textContent = currentParagraph.tieuDe || "Đoạn văn học thuộc";
     document.getElementById("badgeSoTuHocThuoc").textContent = `${allWordsList.length} từ • ${sentencesList.length} câu`;
 
-    // Hiển thị danh sách các câu: 1 dòng tiếng Anh + 1 dòng tiếng Việt dịch sát của ĐÚNG CÂU ĐÓ
+    // Hiển thị danh sách các câu: Song ngữ đối xứng từng từ (Interlinear) + Dịch sát đúng câu này
     const boxText = document.getElementById("boxVanBanHocThuoc");
     if (boxText) {
         boxText.innerHTML = sentencesList.map(s => {
-            const viText = s.viSat || "Đang cập nhật bản dịch cho câu này...";
+            const viText = s.viSat || "Đang phân tích dịch sát câu này...";
             return `
                 <div class="sentence-bilingual-card p-3 mb-3 bg-white rounded-3 border shadow-sm">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
-                        <div class="flex-grow-1">
-                            <!-- DÒNG 1: TIẾNG ANH (TỪNG TỪ CÓ THỂ CLICK NGHE) -->
-                            <div class="sentence-en-text fs-5 fw-bold text-dark mb-1">
-                                ${s.words.map(w => `
-                                    ${w.prefix ? `<span>${escapeHtml(w.prefix)}</span>` : ""}
-                                    <span class="study-word" onclick="docTu('${escapeJs(w.clean)}')" title="Bấm nghe phát âm '${escapeHtml(w.clean)}'">${escapeHtml(w.clean)}</span>
-                                    ${w.trailing ? `<span class="text-secondary">${escapeHtml(w.trailing)}</span>` : ""}
-                                `).join(" ")}
-                            </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold px-2 py-1">
+                            Câu ${s.index + 1} (${s.words.length} từ)
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-success fw-semibold d-flex align-items-center gap-1" onclick="phatAmVanBan('${escapeJs(s.en)}')" title="Nghe câu ${s.index + 1}">
+                            <span>🔊</span> <span>Nghe câu</span>
+                        </button>
+                    </div>
 
-                            <!-- DÒNG 2: TIẾNG VIỆT DỊCH SÁT NGAY DƯỚI DÒNG TIẾNG ANH -->
-                            <div class="sentence-vi-line text-success fw-semibold" id="viSatSentence_${s.index}">
-                                <span class="vi-text-content">${escapeHtml(viText)}</span>
-                            </div>
-                        </div>
+                    <!-- DÒNG TIẾNG ANH & NGHĨA TIẾNG VIỆT ĐỐI XỨNG TỪNG TỪ (WRAPPING THEO DÒNG) -->
+                    <div class="interlinear-flow mb-2">
+                        ${renderInterlinearWords(s)}
+                    </div>
 
-                        <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
-                            <span class="badge bg-light text-secondary border small">Câu ${s.index + 1}</span>
-                            <button type="button" class="btn btn-sm btn-outline-success border-0 px-2 py-1" onclick="phatAmVanBan('${escapeJs(s.en)}')" title="Nghe câu ${s.index + 1}">
-                                🔊
-                            </button>
-                        </div>
+                    <!-- DỊCH SÁT ĐÚNG CÂU NÀY (KHÔNG HIỂN THỊ CẢ BÀI) -->
+                    <div class="sentence-vi-literal p-2 rounded bg-light border d-flex align-items-center gap-2">
+                        <span class="badge bg-success text-white">Dịch câu:</span>
+                        <span class="vi-text-content text-dark fw-medium" id="viSatSentence_${s.index}">${escapeHtml(viText)}</span>
                     </div>
                 </div>
             `;
         }).join("");
     }
 
-    if (sentencesList.some(s => !s.viSat)) {
+    if (sentencesList.some(s => !s.viSat || !s.tuTungTu)) {
         boSungDichSatTungCau(currentParagraph.noiDungEn);
     }
 
@@ -556,12 +646,32 @@ async function boSungDichSatTungCau(noiDungEn) {
         if (!resp.ok) return;
         const data = await resp.json();
         if (data.ok && data.data && Array.isArray(data.data.cauSongNgu)) {
-            data.data.cauSongNgu.forEach((csn, idx) => {
+            data.data.cauSongNgu.forEach((csn, sIdx) => {
+                if (!sentencesList[sIdx]) return;
                 const vi = (csn.viSat || csn.vi || "").trim();
-                if (sentencesList[idx] && vi) {
-                    sentencesList[idx].viSat = vi;
-                    const el = document.querySelector(`#viSatSentence_${idx} .vi-text-content`);
+                if (vi) {
+                    sentencesList[sIdx].viSat = vi;
+                    const el = document.querySelector(`#viSatSentence_${sIdx}`);
                     if (el) el.textContent = vi;
+                }
+                if (Array.isArray(csn.tuTungTu)) {
+                    sentencesList[sIdx].tuTungTu = csn.tuTungTu;
+                    const tuMap = new Map();
+                    csn.tuTungTu.forEach(item => {
+                        if (item && item.en) tuMap.set(cleanWord(item.en), (item.vi || "").trim());
+                    });
+                    sentencesList[sIdx].words.forEach((w, wIdx) => {
+                        const clean = cleanWord(w.clean || w.raw);
+                        if (!clean) return;
+                        const gloss = tuMap.get(clean) || (csn.tuTungTu[wIdx]?.vi) || layNghiaTuTucThi(clean);
+                        if (gloss) {
+                            const tokEl = document.getElementById(`viTok_${sIdx}_${wIdx}`);
+                            if (tokEl) {
+                                tokEl.textContent = gloss;
+                                tokEl.classList.remove("is-loading");
+                            }
+                        }
+                    });
                 }
             });
             if (sentencesList[currentSentenceIdx] && sentencesList[currentSentenceIdx].viSat) {
