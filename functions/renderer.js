@@ -1023,7 +1023,7 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luyện nhớ đoạn văn - Học thuộc &amp; Viết lại tức thì</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/luyen-nho-doan-van.css?v=3">
+    <link rel="stylesheet" href="/css/luyen-nho-doan-van.css?v=4">
 </head>
 <body class="bg-light">
 
@@ -1170,13 +1170,13 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
     </div>
 
     <!-- =========================================================
-         BƯỚC 2: GIAI ĐOẠN 1 - HỌC THUỘC ĐOẠN VĂN (#cardHocThuoc)
+         BƯỚC 2: GIAI ĐOẠN 1 - ĐỌC HIỂU SONG NGỮ SÁT TỪNG TỪ (#cardHocThuoc)
          ========================================================= -->
     <div class="card border-0 shadow-sm rounded-4 mb-4" id="cardHocThuoc" style="display:none;">
         <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1 rounded-pill me-2">
-                    GIAI ĐOẠN 1: HỌC THUỘC
+                <span class="badge bg-primary text-white px-3 py-1 rounded-pill me-2">
+                    BƯỚC 1: ĐỌC HIỂU SONG NGỮ SÁT TỪNG TỪ
                 </span>
                 <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill" id="badgeSoTuHocThuoc">
                     0 từ
@@ -1187,7 +1187,8 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
             </button>
         </div>
         <div class="card-body p-4">
-            <h4 class="fw-bold text-dark text-center mb-3" id="tieuDeHocThuoc">Tiêu đề đoạn văn</h4>
+            <h4 class="fw-bold text-dark text-center mb-1" id="tieuDeHocThuoc">Tiêu đề đoạn văn</h4>
+            <p class="text-muted text-center small mb-3">1 dòng tiếng Anh &amp; 1 dòng tiếng Việt dịch sát nghĩa từng từ để nhận diện từ vựng ngay lập tức!</p>
 
             <!-- Audio controls -->
             <div class="audio-control-bar p-3 rounded-3 bg-light d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border">
@@ -1209,17 +1210,9 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
                 </div>
             </div>
 
-            <!-- Paragraph text with clickable words -->
-            <div class="paragraph-study-box p-4 rounded-3 bg-white border shadow-sm mb-4" id="boxVanBanHocThuoc">
-                <!-- Sentences and clickable words rendered by JS -->
-            </div>
-
-            <!-- Vietnamese translation -->
-            <div class="mb-4">
-                <button type="button" class="btn btn-sm btn-outline-primary mb-2" onclick="toggleDichVi()">
-                    👁️ <span id="lblToggleDich">Xem bản dịch tiếng Việt</span>
-                </button>
-                <div id="boxDichVi" class="p-3 bg-light rounded-3 border fst-italic text-secondary" style="display:none;"></div>
+            <!-- Interlinear Bilingual Sentences: 1 dòng Anh + 1 dòng Việt sát từng từ -->
+            <div class="mb-4" id="boxVanBanHocThuoc">
+                <!-- Rendered by JS: Each sentence has English on top and Literal Vietnamese underneath -->
             </div>
 
             <!-- Key vocabulary -->
@@ -1239,183 +1232,211 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
                 </button>
             </div>
 
-            <!-- CTA Transition to Phase 2 -->
+            <!-- CTA Transition to Step 2 -->
             <div class="text-center pt-3 border-top">
-                <p class="text-muted mb-3">Hãy đọc nhẩm lại 1-2 lần cho đến khi bạn nhớ các câu trong đoạn văn!</p>
-                <button type="button" class="btn btn-primary-gradient px-5 py-3 fw-bold text-white rounded-pill shadow-lg fs-5" onclick="batDauGiaiDoanVietLai()">
-                    ✍️ ĐÃ THUỘC - BẮT ĐẦU LUYỆN NHỚ &amp; GÕ LẠI →
+                <p class="text-muted mb-3">Đọc đối chiếu dòng tiếng Anh và dòng dịch sát 1-2 lần để hiểu cấu trúc câu!</p>
+                <button type="button" class="btn btn-primary-gradient px-5 py-3 fw-bold text-white rounded-pill shadow-lg fs-5" onclick="batDauBuoc2DichTungCau(0)">
+                    🚀 BẮT ĐẦU BƯỚC 2: DỊCH TỪNG CÂU SANG TIẾNG ANH (CÓ CHẤM ĐIỂM) →
                 </button>
             </div>
         </div>
     </div>
 
     <!-- =========================================================
-         BƯỚC 3: GIAI ĐOẠN 2 - VIẾT LẠI ĐOẠN VĂN (#cardVietLai)
+         BƯỚC 2: DỊCH TỪNG CÂU SANG TIẾNG ANH (#cardDichTungCau)
          ========================================================= -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4" id="cardVietLai" style="display:none;">
+    <div class="card border-0 shadow-sm rounded-4 mb-4" id="cardDichTungCau" style="display:none;">
         <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <span class="badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill me-2">
-                    GIAI ĐOẠN 2: LUYỆN NHỚ &amp; VIẾT LẠI
+                <span class="badge bg-primary text-white px-3 py-1 rounded-pill me-2">
+                    BƯỚC 2: DỊCH TỪNG CÂU (CHẤM TỨC THỜI)
                 </span>
-                <span class="fw-bold text-dark" id="tieuDeVietLai">Tiêu đề bài</span>
+                <span class="fw-bold text-dark" id="tieuDeDichCau">Tiêu đề bài</span>
             </div>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="quayLaiHocThuoc()">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hienThiGiaiDoanHocThuoc()">
                     📖 Xem lại bài học
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-warning text-dark fw-semibold" onclick="khoiDongLaiVietLai()">
-                    🔄 Viết lại từ đầu
+                <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="batDauBuoc3NhapToanBai()">
+                    🚀 Nhảy tới Bước 3: Gõ toàn bài →
                 </button>
             </div>
         </div>
 
         <div class="card-body p-4">
             
-            <!-- Mode Switcher Tabs -->
-            <div class="d-flex flex-wrap gap-2 mb-3">
-                <button type="button" class="mode-tab-pill active" id="tabMode_FIRST_LETTER" onclick="chuyenCheDo('FIRST_LETTER')">
-                    ⚡ Siêu trí nhớ (Chữ cái đầu)
-                </button>
-                <button type="button" class="mode-tab-pill" id="tabMode_SENTENCE_DICTATION" onclick="chuyenCheDo('SENTENCE_DICTATION')">
-                    ✍️ Luyện theo câu (Chép chính tả)
-                </button>
-                <button type="button" class="mode-tab-pill" id="tabMode_FULL_PASSAGE" onclick="chuyenCheDo('FULL_PASSAGE')">
-                    📜 Luyện toàn bài (Typewriter)
-                </button>
-            </div>
-
-            <!-- Mode Instruction Banner -->
-            <div id="modeInstructionBanner" class="alert alert-info py-2 px-3 small fw-bold mb-3 d-flex align-items-center gap-2">
-                ⚡ <strong>Siêu trí nhớ (First-Letter Recall):</strong> Chỉ cần nhấn phím <u>chữ cái đầu tiên</u> của mỗi từ. Gõ đúng sẽ sáng xanh và tự nhảy sang từ tiếp theo ngay lập tức!
-            </div>
-
-            <!-- Sentence Navigator Bar (for Sentence & First-Letter Modes) -->
-            <div id="sentenceNavBar" class="sentence-nav-bar d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 shadow-sm">
+            <!-- Sentence Navigator Bar -->
+            <div class="sentence-nav-bar d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 shadow-sm">
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btnPrevSentence" onclick="chuyenCau(-1)" title="Câu trước">
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btnPrevDichCau" onclick="chuyenCauDichRelative(-1)" title="Câu trước">
                         ◀ Câu trước
                     </button>
-                    <span id="sentenceNavText" class="fw-bold text-dark px-2">Câu 1 / 1</span>
-                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btnNextSentence" onclick="chuyenCau(1)" title="Câu sau">
+                    <span id="lblChiSoCau" class="fw-bold text-dark px-2">Câu 1 / 1</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btnNextDichCau" onclick="chuyenCauDichRelative(1)" title="Câu sau">
                         Câu sau ▶
                     </button>
                 </div>
                 
-                <div class="d-flex align-items-center gap-2">
-                    <div id="sentencePillsContainer" class="d-flex gap-1 flex-wrap">
-                        <!-- Rendered by JS: 1, 2, 3... -->
-                    </div>
+                <div id="dichSentencePillsContainer" class="d-flex gap-1 flex-wrap">
+                    <!-- 1, 2, 3... pills rendered by JS -->
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="phatAmCauHienTai(0.85)" title="Nghe phát âm chuẩn của câu này">
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="phatAmCauHienTai()" title="Nghe phát âm chuẩn của câu tiếng Anh này">
                         🔊 Nghe câu
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="phatAmCauHienTai(0.75)" title="Nghe chậm tốc độ 0.75x">
-                        🐢 Chậm
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="liecCauHienTai()" title="Xem nhanh đáp án câu tiếng Anh trong 3 giây">
+                        👁️ Đáp án (3s)
                     </button>
                 </div>
             </div>
 
-            <!-- Mask Style Switcher -->
+            <!-- Vietnamese Literal Prompt Card -->
+            <div class="vietnamese-prompt-card p-4 mb-3 shadow-sm">
+                <div class="small text-muted fw-bold mb-2 d-flex align-items-center gap-1">
+                    <span>🇻🇳 DỊCH CÂU NÀY SANG TIẾNG ANH:</span>
+                </div>
+                <div class="fs-4 fw-bold text-primary" id="promptCauTiengViet">
+                    <!-- Vietnamese literal sentence rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Typing Input Textarea -->
+            <div class="mb-3 position-relative">
+                <textarea id="inputDichCau"
+                          class="form-control form-control-lg fw-bold"
+                          rows="3"
+                          placeholder="Gõ câu tiếng Anh tương ứng vào đây... (Bấm Enter để chấm điểm)"
+                          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chamDiemCauHienTai();}"></textarea>
+                
+                <div id="smartSuggestionBadge" class="smart-suggestion-pill mt-2" style="display:none;"></div>
+            </div>
+
+            <!-- Action Buttons Row -->
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <div class="d-flex align-items-center gap-1">
-                    <span class="small text-muted fw-bold me-1">Gợi ý từ:</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary btn-mask-style active rounded-pill px-2 py-0" id="btnMask_BLANK" onclick="datKieuCheTu('BLANK')">
-                        🔲 Gạch chân (_____)
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-info fw-bold btn-sm rounded-pill shadow-sm" onclick="goiYTuTiepTheoChoCau()" title="Tự động phát hiện vị trí bạn đã gõ và gợi ý từ tiếp theo">
+                        💡 Gợi ý từ tiếp theo
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary btn-mask-style rounded-pill px-2 py-0" id="btnMask_FIRST_LETTER_HINT" onclick="datKieuCheTu('FIRST_LETTER_HINT')">
-                        💡 Chữ cái đầu (c_____)
+                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill" onclick="phatAmCauHienTai()">
+                        🔊 Nghe câu chuẩn
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary btn-mask-style rounded-pill px-2 py-0" id="btnMask_GHOST" onclick="datKieuCheTu('GHOST')">
-                        👻 Hiện chữ mờ
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="liecCauHienTai()">
+                        👁️ Xem đáp án (3s)
                     </button>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold text-primary small">Tiến độ: <span id="lblSoTuDung">0</span> / <span id="lblTongSoTu">0</span> từ (<span id="lblPhanTram">0%</span>)</span>
+                <button type="button" class="btn btn-success px-4 py-2 fw-bold rounded-pill shadow-sm fs-6" onclick="chamDiemCauHienTai()">
+                    ✔️ CHẤM ĐIỂM CÂU NÀY
+                </button>
+            </div>
+
+            <!-- Quick Peek Overlay Box -->
+            <div id="boxPeekOverlayCau" class="alert alert-warning py-3 px-4 shadow-sm rounded-3 mt-2 mb-3" style="display:none;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <strong class="text-dark">👁️ Câu tiếng Anh chuẩn (Tự ẩn sau <span id="peekCountdownCau">3</span>s):</strong>
+                </div>
+                <div id="peekContentCau" class="text-dark fst-italic fs-5"></div>
+            </div>
+
+            <!-- Diff Result & Feedback Box -->
+            <div id="boxDiffResult" class="diff-result-box mb-4 shadow-sm" style="display:none;">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
+                    <span class="fw-bold text-dark">📊 Kết quả chấm điểm:</span>
+                    <span id="diffScoreBadge" class="badge bg-success fs-6">100%</span>
+                </div>
+                
+                <div class="small text-muted mb-2">
+                    <span class="badge bg-success-subtle text-success me-1">Xanh lá: Đúng</span>
+                    <span class="badge bg-danger-subtle text-danger me-1">Đỏ: Sai</span>
+                    <span class="badge bg-warning-subtle text-warning me-1">Vàng: Thiếu</span>
+                </div>
+
+                <div id="diffTokensContainer" class="my-3">
+                    <!-- Rendered by diff algorithm -->
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-3 pt-2 border-top">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="chuyenDenCauDich(currentSentenceIdx)">
+                        🔄 Làm lại câu này
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary fw-bold px-3" id="btnTiepTucCau" onclick="chuyenCauDichRelative(1)">
+                        Tiếp tục sang câu tiếp theo ▶
+                    </button>
                 </div>
             </div>
 
-            <!-- Live Progress Bar -->
-            <div class="progress mb-3" style="height: 8px;">
-                <div id="barTienDo" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+            <!-- Step 3 CTA Button -->
+            <div class="text-center pt-3 border-top mt-4">
+                <button type="button" class="btn btn-primary-gradient px-5 py-3 fw-bold text-white rounded-pill shadow fs-5" onclick="batDauBuoc3NhapToanBai()">
+                    🚀 ĐÃ XONG CÁC CÂU - BƯỚC 3: NHẬP TOÀN BÀI &amp; NỘP CHẤM →
+                </button>
             </div>
 
-            <!-- Live Metrics Bar -->
-            <div class="row g-2 text-center mb-4">
-                <div class="col-3">
+        </div>
+    </div>
+
+    <!-- =========================================================
+         BƯỚC 3: NHẬP TOÀN BÀI & NỘP CHẤM (#cardNhapToanBai)
+         ========================================================= -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4" id="cardNhapToanBai" style="display:none;">
+        <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span class="badge bg-success text-white px-3 py-1 rounded-pill me-2">
+                    BƯỚC 3: NHẬP TOÀN BÀI &amp; NỘP CHẤM
+                </span>
+                <span class="fw-bold text-dark" id="tieuDeToanBai">Tiêu đề bài</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hienThiGiaiDoanHocThuoc()">
+                    📖 Xem bài học
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="batDauBuoc2DichTungCau(0)">
+                    ✍️ Quay lại dịch từng câu
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-4">
+            
+            <!-- Reference Box: Sườn các câu tiếng Việt -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-dark small">🇻🇳 Dựa vào sườn các câu tiếng Việt dưới đây để nhập lại toàn bài tiếng Anh:</span>
+                    <span class="small text-muted">Tổng cộng: <strong id="lblTongSoTuToanBai">0</strong> từ</span>
+                </div>
+                <div class="passage-reference-box p-3 bg-light" id="boxThamKhaoToanBai">
+                    <!-- Sentences rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Full Passage Textarea -->
+            <div class="mb-3 position-relative">
+                <textarea id="inputToanBai"
+                          class="form-control passage-input-textarea"
+                          rows="8"
+                          placeholder="Nhập toàn bộ đoạn văn tiếng Anh vào đây... Bạn có thể bấm 'Gợi ý từ tiếp theo' nếu bị tắc!"></textarea>
+            </div>
+
+            <!-- Toolbar & Submit -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-info fw-bold rounded-pill shadow-sm" onclick="goiYTuTiepTheoToanBai()" title="Gợi ý từ tiếp theo của toàn bài">
+                        💡 Gợi ý từ tiếp theo
+                    </button>
+                    <div id="toanBaiSuggestionBadge" class="smart-suggestion-pill" style="display:none;"></div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
                     <div class="p-2 bg-light rounded-3 border">
-                        <div class="small text-muted">⏱️ Thời gian</div>
-                        <div class="fw-bold text-dark fs-5 font-monospace" id="metricTimer">00:00</div>
+                        <small class="text-muted">⏱️ Thời gian:</small>
+                        <span id="toanBaiTimer" class="fw-bold text-dark font-monospace fs-6">00:00</span>
                     </div>
-                </div>
-                <div class="col-3">
-                    <div class="p-2 bg-light rounded-3 border">
-                        <div class="small text-muted">⚡ Tốc độ</div>
-                        <div class="fw-bold text-primary fs-5 font-monospace" id="metricWpm">0 <small class="fs-6">WPM</small></div>
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="p-2 bg-light rounded-3 border">
-                        <div class="small text-muted">🎯 Chính xác</div>
-                        <div class="fw-bold text-success fs-5 font-monospace" id="metricAccuracy">100%</div>
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="p-2 bg-light rounded-3 border">
-                        <div class="small text-muted">❌ Lỗi gõ</div>
-                        <div class="fw-bold text-danger fs-5 font-monospace" id="metricErrors">0</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Natural Prose Stage Visualizer (NO MORE 150 DOTTED BOXES!) -->
-            <div class="prose-stage-box mb-4" id="boxParagraphStream">
-                <!-- Words flow naturally with commas, periods, capitalization rendered by JS -->
-            </div>
-
-            <!-- Centered Sticky Typing Deck -->
-            <div class="typing-deck mb-3" id="typingDeck">
-                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                    <span class="fw-bold text-secondary small" id="lblTypingInstruction">
-                        ✍️ Nhập vào ô bên dưới:
-                    </span>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-sm btn-outline-info" onclick="goiYKyTuDau()" title="Gợi ý chữ cái đầu của từ hiện tại">
-                            💡 Gợi ý chữ cái
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-success" onclick="docTuHienTai()" title="Nghe phát âm từ hiện tại">
-                            🔊 Nghe từ
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="boQuaTuHienTai()" title="Bỏ qua từ này nếu bạn chưa nhớ">
-                            ⏭️ Bỏ qua từ
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="liecDoanVanGoc()" title="Xem nhanh toàn văn bản gốc trong 3 giây">
-                            👁️ Liếc bài (3s)
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-primary-gradient px-5 py-3 fw-bold text-white rounded-pill shadow-lg fs-5" onclick="nopBaiToanBo()">
+                        📝 NỘP BÀI &amp; CHẤM ĐIỂM TOÀN BÀI
+                    </button>
                 </div>
-                <div class="position-relative">
-                    <input type="text"
-                           class="form-control form-control-lg text-center fw-bold fs-4 typing-input-main"
-                           id="inputTuHienTai"
-                           placeholder="⚡ Nhấn phím chữ cái đầu của từ..."
-                           autocomplete="off"
-                           autocapitalize="none"
-                           spellcheck="false">
-                    <div id="feedbackPill" class="feedback-pill" style="display:none;"></div>
-                </div>
-                <div id="hintText" class="text-danger small fw-semibold mt-2 text-center" style="display:none;"></div>
-            </div>
-
-            <!-- Quick Peek Overlay Box (hidden by default) -->
-            <div id="boxPeekOverlay" class="alert alert-warning py-3 px-4 shadow-sm rounded-3 mt-3" style="display:none;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong class="text-dark">👁️ Đang liếc bài gốc (Tự ẩn sau <span id="peekCountdown">3</span>s):</strong>
-                </div>
-                <div id="peekContent" class="text-dark fst-italic"></div>
             </div>
 
         </div>
@@ -1519,43 +1540,51 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
      MODAL HOÀN THÀNH BÀI VIẾT (#modalHoanThanh)
      ========================================================= -->
 <div class="modal fade" id="modalHoanThanh" tabindex="-1" aria-labelledby="modalHoanThanhLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-4 text-center p-4">
             <div class="modal-body">
                 <div class="fs-1 mb-2">🎉🏆✨</div>
-                <h3 class="fw-bold text-success mb-2">XUẤT SẮC!</h3>
-                <p class="text-muted">Bạn đã hoàn thành ghi nhớ và viết lại đoạn văn!</p>
+                <h3 class="fw-bold text-success mb-2">KẾT QUẢ BÀI VIẾT!</h3>
+                <p class="text-muted">Đánh giá độ chính xác và chi tiết từng từ của bạn:</p>
                 
                 <div class="row g-2 my-3 text-center">
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3 border">
+                    <div class="col-3">
+                        <div class="p-2 bg-light rounded-3 border">
                             <div class="text-muted small">⏱️ Thời gian</div>
-                            <div class="fw-bold text-dark fs-4" id="modalResultTime">00:00</div>
+                            <div class="fw-bold text-dark fs-5 font-monospace" id="modalResultTime">00:00</div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3 border">
+                    <div class="col-3">
+                        <div class="p-2 bg-light rounded-3 border">
                             <div class="text-muted small">⚡ Tốc độ</div>
-                            <div class="fw-bold text-primary fs-4" id="modalResultWpm">0 WPM</div>
+                            <div class="fw-bold text-primary fs-5 font-monospace" id="modalResultWpm">0 WPM</div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3 border">
-                            <div class="text-muted small">🎯 Độ chính xác</div>
-                            <div class="fw-bold text-success fs-4" id="modalResultAccuracy">100%</div>
+                    <div class="col-3">
+                        <div class="p-2 bg-light rounded-3 border">
+                            <div class="text-muted small">🎯 Chính xác</div>
+                            <div class="fw-bold text-success fs-5 font-monospace" id="modalResultAccuracy">100%</div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3 border">
-                            <div class="text-muted small">📚 Tổng số từ</div>
-                            <div class="fw-bold text-dark fs-4" id="modalResultWords">0</div>
+                    <div class="col-3">
+                        <div class="p-2 bg-light rounded-3 border">
+                            <div class="text-muted small">📚 Từ đúng</div>
+                            <div class="fw-bold text-dark fs-5 font-monospace" id="modalResultWords">0</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Detailed Diff of Full Passage -->
+                <div class="text-start mb-3">
+                    <h6 class="fw-bold text-dark mb-2">🔍 Chi tiết từng từ:</h6>
+                    <div id="modalDiffContainer" class="p-3 bg-light rounded-3 border diff-result-box" style="max-height: 250px; overflow-y: auto;">
+                        <!-- Diff words rendered by JS -->
+                    </div>
+                </div>
+
                 <div class="d-flex justify-content-center gap-2 mt-4 flex-wrap">
-                    <button type="button" class="btn btn-primary px-4 fw-bold" onclick="khoiDongLaiVietLai()" data-bs-dismiss="modal">
-                        🔁 Luyện lại bài này
+                    <button type="button" class="btn btn-primary px-4 fw-bold" onclick="batDauBuoc3NhapToanBai()" data-bs-dismiss="modal">
+                        🔁 Nhập lại bài này
                     </button>
                     <button type="button" class="btn btn-outline-success fw-bold px-3" onclick="moModalQuetTuMoi()" data-bs-dismiss="modal">
                         🔍 Quét &amp; Lưu từ mới
@@ -1577,7 +1606,7 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/global-audio.js?v=4"></script>
-<script src="/js/luyen-nho-doan-van.js?v=3"></script>
+<script src="/js/luyen-nho-doan-van.js?v=4"></script>
 </body>
 </html>`;
 }

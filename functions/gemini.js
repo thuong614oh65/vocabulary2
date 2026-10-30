@@ -1075,14 +1075,21 @@ Nhiệm vụ của bạn là sáng tác một đoạn văn tiếng Anh cực k�
 
 Yêu cầu:
 1. Câu văn mạch lạc, ngữ pháp chuẩn 100%, phong cách hành văn tự nhiên (văn nói hoặc văn kể chuyện thực tế).
-2. Dễ học thuộc, nhịp điệu câu cuốn hút giúp người học luyện gõ lại từng từ chính xác.
-3. Kèm theo bản dịch tiếng Việt chuẩn xác và danh sách 4-6 từ vựng tiêu biểu trong bài.
+2. Tách đoạn văn thành từng câu riêng biệt trong mảng "cauSongNgu".
+3. Với MỖI CÂU, cung cấp bản dịch tiếng Việt SÁT TỪNG TỪ (Literal / Word-for-word translation), dịch chuẩn theo từng cụm/từ để người học nhìn vào là nhận diện được ngay từ tiếng Anh ở trên nghĩa là gì (không dịch phóng tác, không dịch thoát ý).
+4. Kèm theo bản dịch tiếng Việt tổng quan và danh sách 4-6 từ vựng tiêu biểu trong bài.
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ VỚI CẤU TRÚC:
 {
   "tieuDe": "Tiêu đề tiếng Anh - Bản dịch tiếng Việt",
   "noiDungEn": "Đoạn văn tiếng Anh hoàn chỉnh...",
-  "dichVi": "Bản dịch tiếng Việt trôi chảy của toàn bộ đoạn văn...",
+  "dichVi": "Bản dịch tiếng Việt tổng quan...",
+  "cauSongNgu": [
+    {
+      "en": "when choosing a hotel , i believe that a convenient location is much more important to me than a wide range of facilities for a couple of reasons .",
+      "viSat": "khi lựa chọn một khách sạn , tôi tin rằng một vị trí thuận tiện thì quan trọng hơn nhiều đối với tôi so với một loạt các tiện nghi vì một vài lý do ."
+    }
+  ],
   "danhSachTuChinh": [
     { "tiengAnh": "word", "phienAm": "/ipa/", "tiengViet": "nghĩa" }
   ]
@@ -1102,20 +1109,28 @@ export async function dichVaPhanTichDoanVan(env, noiDungEn) {
     const text = (noiDungEn || "").trim();
     if (!text) throw new Error("Nội dung đoạn văn trống.");
 
-    const prompt = `Bạn là chuyên gia dịch thuật và sư phạm tiếng Anh.
-Dưới đây là một đoạn văn tiếng Anh do người học nhập vào để luyện học thuộc:
+    const prompt = `Bạn là chuyên gia dịch thuật và sư phạm ngôn ngữ tiếng Anh.
+Dưới đây là một đoạn văn tiếng Anh do người học nhập vào để học thuộc:
 
 """${text}"""
 
-Hãy thực hiện:
+YÊU CẦU ĐẶC BIỆT:
 1. Đặt 1 tiêu đề ngắn gọn súc tích cho đoạn văn này (kèm dịch tiếng Việt).
-2. Dịch toàn bộ đoạn văn sang tiếng Việt chuẩn ngữ nghĩa, tự nhiên, dễ hiểu.
-3. Trích xuất 3-5 từ vựng quan trọng nhất kèm phiên âm và nghĩa.
+2. Tách đoạn văn thành danh sách các câu tiếng Anh ("cauSongNgu").
+3. Với MỖI CÂU, cung cấp bản dịch tiếng Việt CỰC KỲ SÁT NGHĨA TỪNG TỪ/CỤM TỪ (Literal / Word-for-word translation), giữ nguyên trật tự từ và đối ứng ngữ pháp để người học đối chiếu dòng trên và dòng dưới là nhận diện được ngay lập tức từ tiếng Anh ở trên nghĩa là gì! TUYỆT ĐỐI KHÔNG dịch phóng tác, không dịch thoát ý bay bổng, mà phải dịch chuẩn xác sát từng từ.
+4. Cung cấp bản dịch tiếng Việt tổng quan ("dichVi").
+5. Trích xuất 3-6 từ vựng quan trọng nhất kèm phiên âm và nghĩa.
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ THEO CẤU TRÚC:
 {
   "tieuDe": "Tiêu đề tiếng Anh - Nghĩa tiếng Việt",
   "dichVi": "Bản dịch tiếng Việt hoàn chỉnh...",
+  "cauSongNgu": [
+    {
+      "en": "when choosing a hotel , i believe that a convenient location is much more important to me than a wide range of facilities for a couple of reasons .",
+      "viSat": "khi lựa chọn một khách sạn , tôi tin rằng một vị trí thuận tiện thì quan trọng hơn nhiều đối với tôi so với một loạt các tiện nghi vì một vài lý do ."
+    }
+  ],
   "danhSachTuChinh": [
     { "tiengAnh": "...", "phienAm": "/.../", "tiengViet": "..." }
   ]

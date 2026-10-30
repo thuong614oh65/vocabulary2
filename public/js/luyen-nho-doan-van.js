@@ -1,30 +1,24 @@
 // =========================================================
-// LUYỆN NHỚ ĐOẠN VĂN - JAVASCRIPT ENGINE CHUẨN QUỐC TẾ
-// Dựa trên phương pháp Active Recall của Memorize By Heart,
-// MonkeyType & DailyDictation
+// LUYỆN NHỚ ĐOẠN VĂN - JAVASCRIPT ENGINE CHUẨN SƯ PHẠM
+// 1. Đọc hiểu song ngữ sát từng từ (Literal Interlinear)
+// 2. Dịch từng câu sang tiếng Anh (Chấm tức thời & Gợi ý từ)
+// 3. Nhập toàn bài & Nộp chấm
 // =========================================================
 
 let currentParagraph = null;
 let sentencesList = [];
 let allWordsList = [];
 let currentSentenceIdx = 0;
-let currentWordInSentenceIdx = 0;
-let globalWordIdx = 0;
-
-let activeMode = "FIRST_LETTER"; // "FIRST_LETTER" | "SENTENCE_DICTATION" | "FULL_PASSAGE"
-let maskStyle = "BLANK"; // "BLANK" | "FIRST_LETTER_HINT" | "GHOST"
 
 let timerInterval = null;
 let startTime = null;
-let errorCount = 0;
-let correctCount = 0;
 let audioUtterance = null;
 let peekTimer = null;
 
 let savedParagraphs = Array.isArray(window.__INITIAL_SAVED_PARAGRAPHS) ? window.__INITIAL_SAVED_PARAGRAPHS : [];
 
 // =========================================================
-// 1. WEB AUDIO API CHIME & SOUND EFFECTS
+// 1. WEB AUDIO API SOUND EFFECTS
 // =========================================================
 let audioCtx = null;
 function getAudioContext() {
@@ -45,52 +39,17 @@ function playChimeSound() {
         const ctx = getAudioContext();
         if (!ctx) return;
         const now = ctx.currentTime;
-        
-        // Tone 1: 587.33 Hz (D5)
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.type = "sine";
-        osc1.frequency.setValueAtTime(587.33, now);
-        gain1.gain.setValueAtTime(0.12, now);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc1.connect(gain1);
-        gain1.connect(ctx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.15);
-
-        // Tone 2: 880 Hz (A5)
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.type = "sine";
-        osc2.frequency.setValueAtTime(880, now + 0.06);
-        gain2.gain.setValueAtTime(0.18, now + 0.06);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.start(now + 0.06);
-        osc2.stop(now + 0.3);
-    } catch (e) {}
-}
-
-function playSentenceCompleteSound() {
-    try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        const now = ctx.currentTime;
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-        notes.forEach((freq, idx) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            const noteTime = now + (idx * 0.07);
-            osc.type = "triangle";
-            osc.frequency.setValueAtTime(freq, noteTime);
-            gain.gain.setValueAtTime(0.15, noteTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.25);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(noteTime);
-            osc.stop(noteTime + 0.25);
-        });
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        osc.frequency.setValueAtTime(880, now + 0.08); // A5
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
     } catch (e) {}
 }
 
@@ -102,74 +61,83 @@ function playWrongSound() {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(160, now);
-        osc.frequency.linearRampToValueAtTime(100, now + 0.16);
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.2);
         gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.16);
+        osc.stop(now + 0.2);
     } catch (e) {}
 }
 
 // =========================================================
-// 2. PARSE & SEGMENT PARAGRAPH INTO SENTENCES & WORDS
+// 2. PARSE PARAGRAPH INTO SENTENCES & WORD TOKENS
 // =========================================================
 
-function phanTichDoanVanThanhCauVaTu(text) {
-    if (!text) return { sentences: [], allWords: [] };
+function cleanWord(w) {
+    if (!w) return "";
+    return w.toLowerCase().replace(/^[^\w]+|[^\w]+$/g, "");
+}
 
-    // Tách các câu dựa theo dấu câu kết thúc (. ! ? hoặc xuống dòng)
-    const rawSentences = text.match(/[^.!?\n]+[.!?\n]+(\s+|$)|[^.!?\n]+$/g) || [text];
-    const cleanSentences = rawSentences.map(s => s.trim()).filter(Boolean);
+function tachDoanVanThanhCau(text, cauSongNgu = null) {
+    if (!text) return [];
+
+    let cleanSentences = [];
+    if (Array.isArray(cauSongNgu) && cauSongNgu.length > 0) {
+        cleanSentences = cauSongNgu.map((c, idx) => ({
+            index: idx,
+            en: (c.en || "").trim(),
+            viSat: (c.viSat || c.vi || "").trim()
+        }));
+    } else {
+        const rawSentences = text.match(/[^.!?\n]+[.!?\n]+(\s+|$)|[^.!?\n]+$/g) || [text];
+        cleanSentences = rawSentences.map(s => s.trim()).filter(Boolean).map((s, idx) => ({
+            index: idx,
+            en: s,
+            viSat: ""
+        }));
+    }
 
     let globalCounter = 0;
-    const allWords = [];
-
-    const sentences = cleanSentences.map((sText, sIdx) => {
-        // Tách từ trong câu
-        const rawTokens = sText.split(/\s+/).filter(Boolean);
+    return cleanSentences.map((sObj, sIdx) => {
+        const rawTokens = sObj.en.split(/\s+/).filter(Boolean);
         const words = rawTokens.map(tok => {
             const match = tok.match(/^([^\w]*)([\w'’-]+)([^\w]*)$/);
             let prefix = "";
-            let clean = tok.toLowerCase().replace(/^[^\w]+|[^\w]+$/g, "");
+            let clean = cleanWord(tok);
             let trailing = "";
             if (match) {
                 prefix = match[1] || "";
-                clean = match[2].toLowerCase();
+                clean = cleanWord(match[2]);
                 trailing = match[3] || "";
             }
-            const firstLetter = clean ? clean.charAt(0) : "";
-
-            const wordObj = {
+            return {
                 raw: tok,
                 clean: clean,
-                firstLetter: firstLetter,
                 prefix: prefix,
                 trailing: trailing,
-                done: false,
-                skipped: false,
                 sentenceIndex: sIdx,
                 globalIndex: globalCounter++
             };
-            allWords.push(wordObj);
-            return wordObj;
         });
 
         return {
-            sentenceIndex: sIdx,
-            rawText: sText,
+            index: sIdx,
+            en: sObj.en,
+            viSat: sObj.viSat,
             words: words,
+            userAnswer: "",
+            score: null,
+            diffTokens: null,
             isCompleted: false
         };
     });
-
-    return { sentences, allWords };
 }
 
 // =========================================================
-// 3. TẠO ĐOẠN VĂN (AI HOẶC TỰ NHẬP)
+// 3. TẠO HOẶC NHẬP ĐOẠN VĂN
 // =========================================================
 
 function chonChuDe(tenChuDe) {
@@ -194,7 +162,7 @@ async function taoDoanVanAi() {
     if (setupCard) setupCard.style.display = "none";
     if (loadingBox) {
         loadingBox.style.display = "block";
-        if (loadingTitle) loadingTitle.textContent = `🤖 AI đang sáng tác đoạn văn về "${chuDe}"...`;
+        if (loadingTitle) loadingTitle.textContent = `🤖 AI đang sáng tác bài học và dịch sát nghĩa từng từ về "${chuDe}"...`;
     }
 
     try {
@@ -227,6 +195,7 @@ async function taoDoanVanAi() {
             tieuDe: pData.tieuDe || chuDe,
             noiDungEn: pData.noiDungEn,
             dichVi: pData.dichVi,
+            cauSongNgu: pData.cauSongNgu || [],
             danhSachTuChinh: pData.danhSachTuChinh || [],
             soTu: pData.soTu,
             isSaved: false
@@ -271,7 +240,7 @@ async function batDauTuNhap() {
     if (setupCard) setupCard.style.display = "none";
     if (loadingBox) {
         loadingBox.style.display = "block";
-        if (loadingTitle) loadingTitle.textContent = "🤖 Đang chuẩn bị bài học và dịch nghĩa...";
+        if (loadingTitle) loadingTitle.textContent = "🤖 AI đang phân tích từng câu và dịch sát nghĩa từng từ...";
     }
 
     try {
@@ -291,6 +260,7 @@ async function batDauTuNhap() {
             tieuDe: tieuDe || pData?.tieuDe || "Đoạn văn tự nhập",
             noiDungEn: noiDungEn,
             dichVi: pData?.dichVi || "",
+            cauSongNgu: pData?.cauSongNgu || [],
             danhSachTuChinh: pData?.danhSachTuChinh || [],
             soTu: words.length,
             isSaved: false
@@ -308,6 +278,7 @@ async function batDauTuNhap() {
             tieuDe: tieuDe || "Đoạn văn tự nhập",
             noiDungEn: noiDungEn,
             dichVi: "",
+            cauSongNgu: [],
             danhSachTuChinh: [],
             soTu: words.length,
             isSaved: false
@@ -445,6 +416,7 @@ async function taiBaiDaLuu(id) {
         tieuDe: item.tieuDe,
         noiDungEn: item.noiDungEn,
         dichVi: item.dichVi,
+        cauSongNgu: [],
         danhSachTuChinh: [],
         soTu: item.soTu || item.noiDungEn.split(/\s+/).filter(Boolean).length,
         isSaved: true
@@ -479,50 +451,59 @@ async function xoaBaiDaLuu(id, evt) {
 window.xoaBaiDaLuu = xoaBaiDaLuu;
 
 // =========================================================
-// 5. GIAI ĐOẠN 1: HỌC THUỘC (STUDY PHASE)
+// 5. BƯỚC 1: ĐỌC HIỂU SONG NGỮ SÁT TỪNG TỪ (INTERLINEAR)
 // =========================================================
 
 function hienThiGiaiDoanHocThuoc() {
     dungPhatAm();
     document.getElementById("cardSetup").style.display = "none";
-    document.getElementById("cardVietLai").style.display = "none";
+    document.getElementById("cardDichTungCau").style.display = "none";
+    document.getElementById("cardNhapToanBai").style.display = "none";
+
     const cardHocThuoc = document.getElementById("cardHocThuoc");
     if (!cardHocThuoc) return;
-
     cardHocThuoc.style.display = "block";
 
-    // Phân tích câu và từ
-    const parsed = phanTichDoanVanThanhCauVaTu(currentParagraph.noiDungEn);
-    sentencesList = parsed.sentences;
-    allWordsList = parsed.allWords;
+    sentencesList = tachDoanVanThanhCau(currentParagraph.noiDungEn, currentParagraph.cauSongNgu);
+    allWordsList = sentencesList.flatMap(s => s.words);
 
     document.getElementById("tieuDeHocThuoc").textContent = currentParagraph.tieuDe || "Đoạn văn học thuộc";
     document.getElementById("badgeSoTuHocThuoc").textContent = `${allWordsList.length} từ • ${sentencesList.length} câu`;
 
-    // Hiển thị đoạn văn tự nhiên với các từ có thể click nghe phát âm
+    // Hiển thị danh sách các câu: 1 dòng tiếng Anh + 1 dòng tiếng Việt dịch sát từng từ
     const boxText = document.getElementById("boxVanBanHocThuoc");
     if (boxText) {
-        boxText.innerHTML = sentencesList.map(s => `
-            <div class="mb-3 p-2 rounded study-sentence">
-                ${s.words.map(w => `
-                    ${w.prefix ? `<span>${escapeHtml(w.prefix)}</span>` : ""}
-                    <span class="study-word" onclick="docTu('${escapeJs(w.clean)}')" title="Bấm nghe phát âm">${escapeHtml(w.clean)}</span>
-                    ${w.trailing ? `<span class="token-punct">${escapeHtml(w.trailing)}</span>` : ""}
-                `).join(" ")}
-                <button type="button" class="btn btn-sm btn-outline-secondary ms-2 py-0 px-2 rounded-pill" onclick="phatAmVanBan('${escapeJs(s.rawText)}')" title="Nghe câu này">
-                    🔊
-                </button>
-            </div>
-        `).join("");
-    }
+        boxText.innerHTML = sentencesList.map(s => {
+            const viText = s.viSat || currentParagraph.dichVi || "Đang cập nhật bản dịch sát...";
+            return `
+                <div class="sentence-bilingual-card p-3 mb-3 bg-white rounded-3 border shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold px-2 py-1">
+                            Câu ${s.index + 1} (${s.words.length} từ)
+                        </span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="phatAmVanBan('${escapeJs(s.en)}')">
+                                🔊 Nghe câu
+                            </button>
+                        </div>
+                    </div>
 
-    // Hiển thị bản dịch tiếng Việt
-    const boxDich = document.getElementById("boxDichVi");
-    if (boxDich) {
-        boxDich.style.display = "none";
-        boxDich.textContent = currentParagraph.dichVi || "Chưa có bản dịch cho bài này.";
-        const lbl = document.getElementById("lblToggleDich");
-        if (lbl) lbl.textContent = "Xem bản dịch tiếng Việt";
+                    <!-- DÒNG 1: TIẾNG ANH (TỪNG TỪ CÓ THỂ CLICK NGHE) -->
+                    <div class="sentence-en-text fs-5 fw-bold text-dark mb-2">
+                        ${s.words.map(w => `
+                            ${w.prefix ? `<span>${escapeHtml(w.prefix)}</span>` : ""}
+                            <span class="study-word" onclick="docTu('${escapeJs(w.clean)}')" title="Bấm nghe phát âm '${escapeHtml(w.clean)}'">${escapeHtml(w.clean)}</span>
+                            ${w.trailing ? `<span class="text-secondary">${escapeHtml(w.trailing)}</span>` : ""}
+                        `).join(" ")}
+                    </div>
+
+                    <!-- DÒNG 2: TIẾNG VIỆT DỊCH SÁT TỪNG TỪ -->
+                    <div class="sentence-vi-literal p-2 rounded">
+                        <span class="fw-bold me-1">🇻🇳 Dịch sát từng từ:</span> ${escapeHtml(viText)}
+                    </div>
+                </div>
+            `;
+        }).join("");
     }
 
     // Từ vựng chính
@@ -551,617 +532,329 @@ function hienThiGiaiDoanHocThuoc() {
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function toggleDichVi() {
-    const box = document.getElementById("boxDichVi");
-    const lbl = document.getElementById("lblToggleDich");
-    if (!box) return;
-    const isShowing = box.style.display !== "none";
-    box.style.display = isShowing ? "none" : "block";
-    if (lbl) lbl.textContent = isShowing ? "Xem bản dịch tiếng Việt" : "Ẩn bản dịch tiếng Việt";
-}
-window.toggleDichVi = toggleDichVi;
-
 function quayLaiThietLap() {
     dungPhatAm();
     document.getElementById("cardHocThuoc").style.display = "none";
-    document.getElementById("cardVietLai").style.display = "none";
+    document.getElementById("cardDichTungCau").style.display = "none";
+    document.getElementById("cardNhapToanBai").style.display = "none";
     document.getElementById("cardSetup").style.display = "block";
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 window.quayLaiThietLap = quayLaiThietLap;
 
 // =========================================================
-// 6. GIAI ĐOẠN 2: LUYỆN NHỚ & VIẾT LẠI (ACTIVE RECALL & RETYPING)
+// 6. BƯỚC 2: DỊCH TỪNG CÂU SANG TIẾNG ANH (CÓ CHẤM ĐIỂM)
 // =========================================================
 
-function batDauGiaiDoanVietLai() {
+function batDauBuoc2DichTungCau(index = 0) {
     dungPhatAm();
     if (!currentParagraph || !currentParagraph.noiDungEn) return;
 
-    // Phân tích văn bản lại đảm bảo dữ liệu mới nhất
-    const parsed = phanTichDoanVanThanhCauVaTu(currentParagraph.noiDungEn);
-    sentencesList = parsed.sentences;
-    allWordsList = parsed.allWords;
-
-    currentSentenceIdx = 0;
-    currentWordInSentenceIdx = 0;
-    globalWordIdx = 0;
-    errorCount = 0;
-    correctCount = 0;
-    startTime = Date.now();
-
     document.getElementById("cardHocThuoc").style.display = "none";
-    const cardVietLai = document.getElementById("cardVietLai");
-    cardVietLai.style.display = "block";
+    document.getElementById("cardNhapToanBai").style.display = "none";
+    const cardDich = document.getElementById("cardDichTungCau");
+    cardDich.style.display = "block";
 
-    document.getElementById("tieuDeVietLai").textContent = currentParagraph.tieuDe || "Đoạn văn";
-    document.getElementById("lblTongSoTu").textContent = allWordsList.length;
-
-    // Mặc định chọn chế độ Gõ chữ cái đầu (First-Letter) hoặc chế độ đang chọn
-    apDungCheDo(activeMode);
-    khoiDongTimer();
+    document.getElementById("tieuDeDichCau").textContent = currentParagraph.tieuDe || "Luyện dịch từng câu";
+    chuyenDenCauDich(index);
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
-window.batDauGiaiDoanVietLai = batDauGiaiDoanVietLai;
+window.batDauBuoc2DichTungCau = batDauBuoc2DichTungCau;
 
-function quayLaiHocThuoc() {
-    dungTimer();
-    hienThiGiaiDoanHocThuoc();
-}
-window.quayLaiHocThuoc = quayLaiHocThuoc;
+function chuyenDenCauDich(idx) {
+    if (idx < 0 || idx >= sentencesList.length) return;
+    currentSentenceIdx = idx;
 
-function khoiDongLaiVietLai() {
-    batDauGiaiDoanVietLai();
-}
-window.khoiDongLaiVietLai = khoiDongLaiVietLai;
+    const sentence = sentencesList[currentSentenceIdx];
 
-// Chuyển chế độ luyện tập
-function chuyenCheDo(mode) {
-    activeMode = mode;
-    apDungCheDo(mode);
-}
-window.chuyenCheDo = chuyenCheDo;
+    // Cập nhật chỉ số câu & nút chuyển
+    const navText = document.getElementById("lblChiSoCau");
+    const btnPrev = document.getElementById("btnPrevDichCau");
+    const btnNext = document.getElementById("btnNextDichCau");
+    const pillsContainer = document.getElementById("dichSentencePillsContainer");
 
-function apDungCheDo(mode) {
-    // Cập nhật tab active
-    document.querySelectorAll(".mode-tab-pill").forEach(p => p.classList.remove("active"));
-    const activeTab = document.getElementById(`tabMode_${mode}`);
-    if (activeTab) activeTab.classList.add("active");
-
-    const sentenceNav = document.getElementById("sentenceNavBar");
-    const hintBanner = document.getElementById("modeInstructionBanner");
-    const inputEl = document.getElementById("inputTuHienTai");
-
-    if (mode === "FIRST_LETTER") {
-        if (sentenceNav) sentenceNav.style.display = "flex";
-        if (hintBanner) {
-            hintBanner.className = "alert alert-info py-2 px-3 small fw-bold mb-3 d-flex align-items-center gap-2";
-            hintBanner.innerHTML = "⚡ <strong>Siêu trí nhớ (First-Letter Recall):</strong> Chỉ cần nhấn phím <u>chữ cái đầu tiên</u> của mỗi từ. Gõ đúng sẽ sáng xanh và tự nhảy sang từ tiếp theo ngay lập tức!";
-            hintBanner.style.display = "flex";
-        }
-        if (inputEl) {
-            inputEl.placeholder = "⚡ Nhấn phím chữ cái đầu của từ...";
-            inputEl.value = "";
-        }
-    } else if (mode === "SENTENCE_DICTATION") {
-        if (sentenceNav) sentenceNav.style.display = "flex";
-        if (hintBanner) {
-            hintBanner.className = "alert alert-primary py-2 px-3 small fw-bold mb-3 d-flex align-items-center gap-2";
-            hintBanner.innerHTML = "✍️ <strong>Luyện theo câu (Sentence Dictation):</strong> Gõ hoàn chỉnh từng từ rồi nhấn phím Space hoặc Enter để chuyển từ. Hoàn thành từng câu sẽ tự chuyển câu!";
-            hintBanner.style.display = "flex";
-        }
-        if (inputEl) {
-            inputEl.placeholder = "Gõ từ tiếp theo rồi nhấn Space hoặc Enter...";
-            inputEl.value = "";
-        }
-    } else if (mode === "FULL_PASSAGE") {
-        if (sentenceNav) sentenceNav.style.display = "none";
-        if (hintBanner) {
-            hintBanner.className = "alert alert-secondary py-2 px-3 small fw-bold mb-3 d-flex align-items-center gap-2";
-            hintBanner.innerHTML = "📜 <strong>Luyện gõ toàn bài (Typewriter):</strong> Dòng chữ tự nhiên, gõ liên tục từ đầu đến cuối đoạn văn!";
-            hintBanner.style.display = "flex";
-        }
-        if (inputEl) {
-            inputEl.placeholder = "Gõ từ tiếp theo rồi nhấn Space hoặc Enter...";
-            inputEl.value = "";
-        }
+    if (navText) {
+        const scoreStr = sentence.score !== null ? ` • Điểm: ${sentence.score}%` : "";
+        navText.innerHTML = `Câu <strong>${idx + 1}</strong> / ${sentencesList.length} <small class="text-muted">(${sentence.words.length} từ${scoreStr})</small>`;
     }
-
-    renderProseStage();
-    capNhatSentenceNav();
-    capNhatTienDoMetrics();
-
-    if (inputEl) {
-        inputEl.focus();
-    }
-}
-
-// Chuyển kiểu che từ (Blank / FirstLetter / Ghost)
-function datKieuCheTu(style) {
-    maskStyle = style;
-    document.querySelectorAll(".btn-mask-style").forEach(b => b.classList.remove("active"));
-    const btn = document.getElementById(`btnMask_${style}`);
-    if (btn) btn.classList.add("active");
-    renderProseStage();
-}
-window.datKieuCheTu = datKieuCheTu;
-
-// Điều hướng câu
-function chuyenCau(delta) {
-    const nextIdx = currentSentenceIdx + delta;
-    if (nextIdx >= 0 && nextIdx < sentencesList.length) {
-        currentSentenceIdx = nextIdx;
-        currentWordInSentenceIdx = 0;
-        renderProseStage();
-        capNhatSentenceNav();
-        const inputEl = document.getElementById("inputTuHienTai");
-        if (inputEl) {
-            inputEl.value = "";
-            inputEl.focus();
-        }
-    }
-}
-window.chuyenCau = chuyenCau;
-
-function chuyenDenCau(idx) {
-    if (idx >= 0 && idx < sentencesList.length) {
-        currentSentenceIdx = idx;
-        currentWordInSentenceIdx = 0;
-        renderProseStage();
-        capNhatSentenceNav();
-        const inputEl = document.getElementById("inputTuHienTai");
-        if (inputEl) {
-            inputEl.value = "";
-            inputEl.focus();
-        }
-    }
-}
-window.chuyenDenCau = chuyenDenCau;
-
-function capNhatSentenceNav() {
-    const navText = document.getElementById("sentenceNavText");
-    const btnPrev = document.getElementById("btnPrevSentence");
-    const btnNext = document.getElementById("btnNextSentence");
-    const pillsContainer = document.getElementById("sentencePillsContainer");
-
-    if (sentencesList.length === 0) return;
-
-    const currentSentence = sentencesList[currentSentenceIdx];
-    if (navText && currentSentence) {
-        const completedWords = currentSentence.words.filter(w => w.done).length;
-        navText.innerHTML = `Câu <strong>${currentSentenceIdx + 1}</strong> / ${sentencesList.length} <small class="text-muted">(${completedWords}/${currentSentence.words.length} từ)</small>`;
-    }
-
-    if (btnPrev) btnPrev.disabled = (currentSentenceIdx === 0);
-    if (btnNext) btnNext.disabled = (currentSentenceIdx === sentencesList.length - 1);
+    if (btnPrev) btnPrev.disabled = (idx === 0);
+    if (btnNext) btnNext.disabled = (idx === sentencesList.length - 1);
 
     if (pillsContainer) {
-        pillsContainer.innerHTML = sentencesList.map((s, idx) => {
-            const isAllDone = s.words.length > 0 && s.words.every(w => w.done);
+        pillsContainer.innerHTML = sentencesList.map((s, i) => {
             let cls = "sentence-pill";
-            if (idx === currentSentenceIdx) cls += " active";
-            else if (isAllDone) cls += " completed";
-            return `<button type="button" class="${cls}" onclick="chuyenDenCau(${idx})" title="Chuyển đến câu ${idx + 1}">${idx + 1}${isAllDone ? "✓" : ""}</button>`;
+            if (i === currentSentenceIdx) cls += " active";
+            else if (s.isCompleted) cls += " completed";
+            return `<button type="button" class="${cls}" onclick="chuyenDenCauDich(${i})" title="Chuyển đến câu ${i + 1}">${i + 1}${s.isCompleted ? "✓" : ""}</button>`;
         }).join("");
     }
-}
 
-// =========================================================
-// 7. RENDER NATURAL PROSE STAGE (KHÔNG Ô VUÔNG RỜI RẠC)
-// =========================================================
-
-function renderProseStage() {
-    const stage = document.getElementById("boxParagraphStream");
-    if (!stage) return;
-
-    if (activeMode === "FULL_PASSAGE") {
-        // Render toàn bộ đoạn văn liền mạch
-        let html = "";
-        sentencesList.forEach((s, sIdx) => {
-            const wordsHtml = s.words.map(w => renderSingleWordToken(w, w.globalIndex === globalWordIdx)).join(" ");
-            html += `<span class="prose-sentence-wrap">${wordsHtml}</span> `;
-        });
-        stage.innerHTML = html;
-    } else {
-        // Render câu hiện tại (Sentence Dictation & First Letter Recall)
-        const currentSentence = sentencesList[currentSentenceIdx];
-        if (!currentSentence) return;
-
-        const wordsHtml = currentSentence.words.map((w, wIdx) => {
-            const isCurrent = (wIdx === currentWordInSentenceIdx);
-            return renderSingleWordToken(w, isCurrent);
-        }).join(" ");
-
-        stage.innerHTML = `
-            <div class="active-sentence-prose">
-                ${wordsHtml}
-            </div>
-        `;
+    // Hiển thị câu tiếng Việt sát nghĩa
+    const promptEl = document.getElementById("promptCauTiengViet");
+    if (promptEl) {
+        promptEl.textContent = sentence.viSat || currentParagraph.dichVi || "Dịch câu này sang tiếng Anh:";
     }
 
-    // Cuộn mượt đến từ hiện tại
-    const currentEl = document.getElementById("targetCurrentWord");
-    if (currentEl) {
-        currentEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-    }
-}
-
-function renderSingleWordToken(w, isCurrent) {
-    const prefixHtml = w.prefix ? `<span class="token-prefix">${escapeHtml(w.prefix)}</span>` : "";
-    const trailingHtml = w.trailing ? `<span class="token-punct">${escapeHtml(w.trailing)}</span>` : "";
-
-    if (w.done) {
-        // Đã hoàn thành từ này
-        return `<span class="word-token done">${prefixHtml}${escapeHtml(w.clean)}${trailingHtml}</span>`;
-    } else if (w.skipped) {
-        // Đã bỏ qua
-        return `<span class="word-token skipped">${prefixHtml}${escapeHtml(w.clean)}${trailingHtml}</span>`;
-    } else if (isCurrent) {
-        // Từ hiện tại đang nhắm đến
-        let displayTarget = "";
-        if (activeMode === "FIRST_LETTER") {
-            // Chế độ first letter: hiển thị chữ cái đầu tiên và gạch dưới các chữ còn lại
-            const first = w.clean.charAt(0);
-            const rest = "_".repeat(Math.max(1, w.clean.length - 1));
-            displayTarget = `<span class="text-primary fw-bold">${escapeHtml(first)}</span><span class="text-muted">${rest}</span>`;
-        } else {
-            // Hiển thị từ sạch có con trỏ
-            displayTarget = escapeHtml(w.clean);
-        }
-        return `<span class="word-token current" id="targetCurrentWord">${prefixHtml}${displayTarget}${trailingHtml}</span>`;
-    } else {
-        // Từ sắp tới (Upcoming)
-        let maskContent = "";
-        if (maskStyle === "BLANK") {
-            maskContent = "_".repeat(Math.min(w.clean.length, 8));
-            return `<span class="word-token upcoming mask-blank">${prefixHtml}${maskContent}${trailingHtml}</span>`;
-        } else if (maskStyle === "FIRST_LETTER_HINT") {
-            const first = w.clean.charAt(0);
-            const rest = "_".repeat(Math.max(1, w.clean.length - 1));
-            return `<span class="word-token upcoming mask-firstletter">${prefixHtml}${first}${rest}${trailingHtml}</span>`;
-        } else {
-            // GHOST
-            return `<span class="word-token upcoming mask-ghost">${prefixHtml}${escapeHtml(w.clean)}${trailingHtml}</span>`;
-        }
-    }
-}
-
-// Lấy từ hiện tại cần kiểm tra
-function getActiveTargetWord() {
-    if (activeMode === "FULL_PASSAGE") {
-        return allWordsList[globalWordIdx] || null;
-    } else {
-        const sentence = sentencesList[currentSentenceIdx];
-        if (!sentence) return null;
-        return sentence.words[currentWordInSentenceIdx] || null;
-    }
-}
-
-// =========================================================
-// 8. BẮT PHÍM & XỬ LÝ GÕ THỜI GIAN THỰC
-// =========================================================
-
-const inputEl = document.getElementById("inputTuHienTai");
-if (inputEl) {
-    // Sự kiện phím cho chế độ GÕ CHỮ CÁI ĐẦU (FIRST_LETTER) & ENTER / SPACE
-    inputEl.addEventListener("keydown", function(e) {
-        if (activeMode === "FIRST_LETTER") {
-            // Bỏ qua các phím điều khiển đặc biệt
-            if (["Shift", "Control", "Alt", "Meta", "CapsLock", "Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape"].includes(e.key)) {
-                return;
-            }
-
-            e.preventDefault();
-
-            // Nếu nhấn phím Space: gợi ý hoặc bỏ qua
-            if (e.key === " ") {
-                goiYKyTuDau();
-                return;
-            }
-
-            // Xử lý phím ký tự gõ
-            if (e.key.length === 1) {
-                kiemTraKyTuDau(e.key.toLowerCase());
-            }
-        } else {
-            // Chế độ GÕ CẢ TỪ (SENTENCE_DICTATION & FULL_PASSAGE)
-            if (e.key === " " || e.key === "Enter") {
-                e.preventDefault();
-                kiemTraTuHienTai();
-            }
-        }
-    });
-
-    // Auto-check khi gõ đúng từ trong chế độ thường
-    inputEl.addEventListener("input", function() {
-        if (activeMode === "FIRST_LETTER") return;
-
-        const val = inputEl.value.trim().toLowerCase();
-        const target = getActiveTargetWord();
-        if (!target) return;
-
-        // Nếu người dùng gõ hoàn toàn khớp từ sạch thì chấm luôn không cần bấm space
-        if (val === target.clean) {
-            kiemTraTuHienTai();
-        }
-    });
-}
-
-// Kiểm tra ký tự đầu tiên (Mode First Letter)
-function kiemTraKyTuDau(charTyped) {
-    const target = getActiveTargetWord();
-    if (!target) return;
-
-    const inp = document.getElementById("inputTuHienTai");
-    const pill = document.getElementById("feedbackPill");
-    const hint = document.getElementById("hintText");
-
-    const expectedFirst = target.firstLetter.toLowerCase();
-
-    if (charTyped === expectedFirst) {
-        // ĐÚNG KÝ TỰ ĐẦU!
-        playChimeSound();
-        correctCount++;
-        target.done = true;
-
-        if (pill) {
-            pill.className = "feedback-pill pill-correct";
-            pill.textContent = `✓ "${target.clean}"`;
-            pill.style.display = "block";
-            setTimeout(() => { if (pill) pill.style.display = "none"; }, 600);
-        }
-        if (hint) hint.style.display = "none";
-
-        chuyenSangTuTiepTheo();
-    } else {
-        // SAI KÝ TỰ!
-        playWrongSound();
-        errorCount++;
-
-        if (inp) {
-            inp.classList.add("is-wrong-flash");
-            setTimeout(() => { if (inp) inp.classList.remove("is-wrong-flash"); }, 300);
-        }
-
-        if (pill) {
-            pill.className = "feedback-pill pill-wrong";
-            pill.textContent = `Phím đúng: "${expectedFirst.toUpperCase()}"`;
-            pill.style.display = "block";
-            setTimeout(() => { if (pill) pill.style.display = "none"; }, 800);
-        }
-
-        if (hint) {
-            hint.textContent = `💡 Từ tiếp theo là: "${target.clean}" (Chữ cái đầu: ${expectedFirst.toUpperCase()})`;
-            hint.style.display = "block";
-        }
-
-        capNhatTienDoMetrics();
-    }
-}
-
-// Kiểm tra cả từ (Mode Full Word)
-function kiemTraTuHienTai() {
-    const target = getActiveTargetWord();
-    if (!target) return;
-
-    const inp = document.getElementById("inputTuHienTai");
-    const pill = document.getElementById("feedbackPill");
-    const hint = document.getElementById("hintText");
-
-    const val = (inp.value || "").trim();
-    if (!val) return;
-
-    const cleanUser = val.toLowerCase().replace(/^[^\w]+|[^\w]+$/g, "");
-    const isMatch = (cleanUser === target.clean) || (val.toLowerCase() === target.raw.toLowerCase());
-
-    if (isMatch) {
-        // ĐÚNG TỪ!
-        playChimeSound();
-        correctCount++;
-        target.done = true;
-
-        inp.className = "form-control form-control-lg text-center fw-bold fs-4 typing-input-main is-correct-flash";
-        if (pill) {
-            pill.className = "feedback-pill pill-correct";
-            pill.textContent = "✓ Đúng!";
-            pill.style.display = "block";
-            setTimeout(() => { if (pill) pill.style.display = "none"; }, 700);
-        }
-        if (hint) hint.style.display = "none";
-
-        inp.value = "";
-        setTimeout(() => {
-            if (inp) inp.className = "form-control form-control-lg text-center fw-bold fs-4 typing-input-main";
-        }, 180);
-
-        chuyenSangTuTiepTheo();
-    } else {
-        // SAI TỪ!
-        playWrongSound();
-        errorCount++;
-
-        inp.className = "form-control form-control-lg text-center fw-bold fs-4 typing-input-main is-wrong-flash";
-        if (pill) {
-            pill.className = "feedback-pill pill-wrong";
-            pill.textContent = "✕ Sai!";
-            pill.style.display = "block";
-            setTimeout(() => { if (pill) pill.style.display = "none"; }, 800);
-        }
-
-        if (hint) {
-            hint.textContent = `❌ Chưa chính xác! Từ đúng là: "${target.clean}"`;
-            hint.style.display = "block";
-        }
-
-        capNhatTienDoMetrics();
-
-        setTimeout(() => {
-            if (inp) {
-                inp.className = "form-control form-control-lg text-center fw-bold fs-4 typing-input-main";
-                inp.select();
-            }
-        }, 300);
-    }
-}
-
-// Chuyển sang từ tiếp theo
-function chuyenSangTuTiepTheo() {
-    if (activeMode === "FULL_PASSAGE") {
-        globalWordIdx++;
-        renderProseStage();
-        capNhatTienDoMetrics();
-
-        if (globalWordIdx >= allWordsList.length) {
-            xuLyHoanThanhBaiViet();
-        }
-    } else {
-        const sentence = sentencesList[currentSentenceIdx];
-        currentWordInSentenceIdx++;
-
-        if (currentWordInSentenceIdx >= sentence.words.length) {
-            // HOÀN THÀNH CÂU!
-            sentence.isCompleted = true;
-            playSentenceCompleteSound();
-
-            const pill = document.getElementById("feedbackPill");
-            if (pill) {
-                pill.className = "feedback-pill pill-correct";
-                pill.textContent = "🎉 Hoàn thành câu!";
-                pill.style.display = "block";
-                setTimeout(() => { if (pill) pill.style.display = "none"; }, 1000);
-            }
-
-            renderProseStage();
-            capNhatSentenceNav();
-            capNhatTienDoMetrics();
-
-            // Nếu còn câu tiếp theo -> tự động chuyển sau 600ms
-            if (currentSentenceIdx < sentencesList.length - 1) {
-                setTimeout(() => {
-                    chuyenCau(1);
-                }, 600);
-            } else {
-                // Đã xong toàn bài!
-                setTimeout(() => {
-                    xuLyHoanThanhBaiViet();
-                }, 800);
-            }
-        } else {
-            renderProseStage();
-            capNhatSentenceNav();
-            capNhatTienDoMetrics();
-        }
-    }
-}
-
-// Cập nhật số liệu tiến độ & WPM
-function capNhatTienDoMetrics() {
-    const totalWords = allWordsList.length;
-    const completedWords = allWordsList.filter(w => w.done).length;
-    const percent = totalWords > 0 ? Math.round((completedWords / totalWords) * 100) : 0;
-
-    const lblDung = document.getElementById("lblSoTuDung");
-    const lblPhanTram = document.getElementById("lblPhanTram");
-    const bar = document.getElementById("barTienDo");
-
-    if (lblDung) lblDung.textContent = completedWords;
-    if (lblPhanTram) lblPhanTram.textContent = `${percent}%`;
-    if (bar) bar.style.width = `${percent}%`;
-
-    const totalAttempts = correctCount + errorCount;
-    const accuracy = totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : 100;
-    const accEl = document.getElementById("metricAccuracy");
-    const errEl = document.getElementById("metricErrors");
-
-    if (accEl) accEl.textContent = `${accuracy}%`;
-    if (errEl) errEl.textContent = errorCount;
-}
-
-// Khởi động bộ đếm giờ
-function khoiDongTimer() {
-    dungTimer();
-    startTime = Date.now();
-    timerInterval = setInterval(() => {
-        const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-        const mm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
-        const ss = String(elapsedSec % 60).padStart(2, "0");
-        const timerEl = document.getElementById("metricTimer");
-        if (timerEl) timerEl.textContent = `${mm}:${ss}`;
-
-        const minutes = Math.max(elapsedSec / 60, 0.05);
-        const wpm = Math.round(correctCount / minutes);
-        const wpmEl = document.getElementById("metricWpm");
-        if (wpmEl) wpmEl.innerHTML = `${wpm} <small class="fs-6">WPM</small>`;
-    }, 500);
-}
-
-function dungTimer() {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-    }
-}
-
-// Các nút trợ giúp
-function goiYKyTuDau() {
-    const target = getActiveTargetWord();
-    if (!target) return;
-    const hint = document.getElementById("hintText");
-    if (hint) {
-        hint.textContent = `💡 Gợi ý: Từ bắt đầu bằng "${target.firstLetter.toUpperCase()}" ➔ "${target.clean}"`;
-        hint.style.display = "block";
-    }
-    const inp = document.getElementById("inputTuHienTai");
-    if (inp) inp.focus();
-}
-window.goiYKyTuDau = goiYKyTuDau;
-
-function boQuaTuHienTai() {
-    const target = getActiveTargetWord();
-    if (!target) return;
-    target.skipped = true;
-    errorCount++;
-    chuyenSangTuTiepTheo();
-    const inp = document.getElementById("inputTuHienTai");
+    // Input box
+    const inp = document.getElementById("inputDichCau");
     if (inp) {
-        inp.value = "";
-        inp.focus();
+        inp.value = sentence.userAnswer || "";
+        setTimeout(() => inp.focus(), 100);
+    }
+
+    // Gợi ý pill ẩn đi
+    const pill = document.getElementById("smartSuggestionBadge");
+    if (pill) pill.style.display = "none";
+
+    // Ẩn hoặc hiện diff cũ nếu đã chấm
+    const diffBox = document.getElementById("boxDiffResult");
+    if (diffBox) {
+        if (sentence.diffTokens && sentence.diffTokens.length > 0) {
+            hienThiKetQuaDiff(sentence.diffTokens, sentence.score);
+        } else {
+            diffBox.style.display = "none";
+        }
     }
 }
-window.boQuaTuHienTai = boQuaTuHienTai;
+window.chuyenDenCauDich = chuyenDenCauDich;
 
-function docTuHienTai() {
-    const target = getActiveTargetWord();
-    if (!target) return;
-    docTu(target.clean);
+function chuyenCauDichRelative(delta) {
+    chuyenDenCauDich(currentSentenceIdx + delta);
 }
-window.docTuHienTai = docTuHienTai;
+window.chuyenCauDichRelative = chuyenCauDichRelative;
 
-function phatAmCauHienTai(tocDo = 0.85) {
+// =========================================================
+// 7. DIFF & CHẤM ĐIỂM THÔNG MINH (LCS ALGORITHM)
+// =========================================================
+
+function diffWords(targetStr, userStr) {
+    const targets = targetStr.trim().split(/\s+/).filter(Boolean);
+    const users = userStr.trim().split(/\s+/).filter(Boolean);
+
+    const m = targets.length, n = users.length;
+    const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (cleanWord(targets[i - 1]) === cleanWord(users[j - 1])) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+
+    let i = m, j = n;
+    const rawTokens = [];
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && cleanWord(targets[i - 1]) === cleanWord(users[j - 1])) {
+            rawTokens.unshift({ type: "correct", word: targets[i - 1] });
+            i--; j--;
+        } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+            rawTokens.unshift({ type: "extra", word: users[j - 1] });
+            j--;
+        } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
+            rawTokens.unshift({ type: "missing", word: targets[i - 1] });
+            i--;
+        }
+    }
+
+    // Kết hợp từ thiếu + thừa liền kề thành 'wrong'
+    const combined = [];
+    for (let k = 0; k < rawTokens.length; k++) {
+        const curr = rawTokens[k];
+        const next = rawTokens[k + 1];
+        if (curr.type === "extra" && next && next.type === "missing") {
+            combined.push({ type: "wrong", typedWord: curr.word, targetWord: next.word });
+            k++;
+        } else if (curr.type === "missing" && next && next.type === "extra") {
+            combined.push({ type: "wrong", typedWord: next.word, targetWord: curr.word });
+            k++;
+        } else {
+            combined.push(curr);
+        }
+    }
+
+    const correctCount = combined.filter(t => t.type === "correct").length;
+    const score = Math.round((correctCount / Math.max(1, targets.length)) * 100);
+    return { tokens: combined, score, correctCount, totalCount: targets.length };
+}
+
+function chamDiemCauHienTai() {
     const sentence = sentencesList[currentSentenceIdx];
     if (!sentence) return;
-    phatAmVanBan(sentence.rawText, tocDo);
+
+    const inp = document.getElementById("inputDichCau");
+    const userText = (inp ? inp.value : "").trim();
+    if (!userText) {
+        alert("Vui lòng nhập câu tiếng Anh trước khi chấm điểm!");
+        if (inp) inp.focus();
+        return;
+    }
+
+    sentence.userAnswer = userText;
+    const res = diffWords(sentence.en, userText);
+    sentence.score = res.score;
+    sentence.diffTokens = res.tokens;
+
+    if (res.score >= 90) {
+        sentence.isCompleted = true;
+        playChimeSound();
+    } else {
+        playWrongSound();
+    }
+
+    hienThiKetQuaDiff(res.tokens, res.score);
+
+    // Cập nhật lại thanh điều hướng
+    chuyenDenCauDich(currentSentenceIdx);
+}
+window.chamDiemCauHienTai = chamDiemCauHienTai;
+
+function hienThiKetQuaDiff(tokens, score) {
+    const box = document.getElementById("boxDiffResult");
+    const container = document.getElementById("diffTokensContainer");
+    const scoreBadge = document.getElementById("diffScoreBadge");
+    if (!box || !container) return;
+
+    box.style.display = "block";
+    if (scoreBadge) {
+        scoreBadge.textContent = `${score}% (${score >= 90 ? "Xuất sắc 🎉" : score >= 60 ? "Khá tốt 👍" : "Cần sửa lại ⚠️"})`;
+        scoreBadge.className = `badge ${score >= 90 ? "bg-success" : score >= 60 ? "bg-primary" : "bg-warning text-dark"} fs-6`;
+    }
+
+    container.innerHTML = tokens.map(t => {
+        if (t.type === "correct") {
+            return `<span class="diff-word diff-correct">${escapeHtml(t.word)} ✓</span>`;
+        } else if (t.type === "wrong") {
+            return `<span class="diff-word diff-wrong"><del>${escapeHtml(t.typedWord)}</del> ➔ <span class="diff-target-correct">${escapeHtml(t.targetWord)}</span></span>`;
+        } else if (t.type === "missing") {
+            return `<span class="diff-word diff-missing">Thiếu: "${escapeHtml(t.word)}"</span>`;
+        } else if (t.type === "extra") {
+            return `<span class="diff-word diff-extra">${escapeHtml(t.word)} (thừa)</span>`;
+        }
+        return "";
+    }).join(" ");
+
+    // Nút chuyển câu tiếp
+    const btnNext = document.getElementById("btnTiepTucCau");
+    if (btnNext) {
+        if (currentSentenceIdx < sentencesList.length - 1) {
+            btnNext.style.display = "inline-block";
+        } else {
+            btnNext.style.display = "none";
+        }
+    }
+}
+
+// =========================================================
+// 8. NÚT GỢI Ý TỪ TIẾP THEO THÔNG MINH (NEXT-WORD SUGGESTION)
+// =========================================================
+
+function getNextWordHint(targetStr, userStr) {
+    const targets = targetStr.trim().split(/\s+/).filter(Boolean);
+    const trimmed = (userStr || "").trim();
+    if (!trimmed) {
+        return targets.length > 0 ? { nextWord: targets[0], insertText: targets[0] + " ", isPartial: false } : null;
+    }
+
+    const endsWithSpace = /\s$/.test(userStr);
+    const users = trimmed.split(/\s+/).filter(Boolean);
+
+    // Tính số từ người dùng đã gõ đúng khớp
+    let matchIdx = 0;
+    const checkLen = endsWithSpace ? users.length : Math.max(0, users.length - 1);
+    for (let u = 0; u < checkLen; u++) {
+        const uClean = cleanWord(users[u]);
+        for (let t = matchIdx; t < Math.min(matchIdx + 4, targets.length); t++) {
+            if (cleanWord(targets[t]) === uClean) {
+                matchIdx = t + 1;
+                break;
+            }
+        }
+    }
+
+    // Nếu đang gõ dở một từ (chưa bấm space) và tiền tố khớp với từ mục tiêu
+    if (!endsWithSpace && users.length > 0) {
+        const lastWord = users[users.length - 1];
+        const lastClean = cleanWord(lastWord);
+        if (matchIdx < targets.length) {
+            const targetClean = cleanWord(targets[matchIdx]);
+            if (targetClean.startsWith(lastClean)) {
+                const restLetters = targets[matchIdx].slice(lastWord.length);
+                return {
+                    nextWord: targets[matchIdx],
+                    insertText: restLetters + " ",
+                    isPartial: true
+                };
+            }
+        }
+    }
+
+    if (matchIdx < targets.length) {
+        return {
+            nextWord: targets[matchIdx],
+            insertText: (endsWithSpace ? "" : " ") + targets[matchIdx] + " ",
+            isPartial: false
+        };
+    }
+    return null;
+}
+
+function goiYTuTiepTheoChoCau() {
+    const sentence = sentencesList[currentSentenceIdx];
+    if (!sentence) return;
+
+    const inp = document.getElementById("inputDichCau");
+    if (!inp) return;
+
+    const currentVal = inp.value;
+    const hint = getNextWordHint(sentence.en, currentVal);
+
+    const badge = document.getElementById("smartSuggestionBadge");
+    if (!hint) {
+        if (badge) {
+            badge.style.display = "inline-block";
+            badge.textContent = "🎉 Bạn đã gõ đủ các từ của câu này!";
+        }
+        return;
+    }
+
+    // Hiển thị gợi ý
+    if (badge) {
+        badge.style.display = "inline-block";
+        badge.innerHTML = `👉 Từ tiếp theo: <strong>"${escapeHtml(hint.nextWord)}"</strong>`;
+    }
+
+    // Tự động điền vào ô nhập
+    inp.value = currentVal + hint.insertText;
+    inp.focus();
+
+    // Di chuyển con trỏ xuống cuối
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+}
+window.goiYTuTiepTheoChoCau = goiYTuTiepTheoChoCau;
+
+function phatAmCauHienTai() {
+    const sentence = sentencesList[currentSentenceIdx];
+    if (!sentence) return;
+    phatAmVanBan(sentence.en);
 }
 window.phatAmCauHienTai = phatAmCauHienTai;
 
-function liecDoanVanGoc() {
-    const box = document.getElementById("boxPeekOverlay");
-    const content = document.getElementById("peekContent");
-    const countdown = document.getElementById("peekCountdown");
+function liecCauHienTai() {
+    const sentence = sentencesList[currentSentenceIdx];
+    if (!sentence) return;
+
+    const box = document.getElementById("boxPeekOverlayCau");
+    const content = document.getElementById("peekContentCau");
+    const countdown = document.getElementById("peekCountdownCau");
     if (!box || !content) return;
 
     if (peekTimer) clearInterval(peekTimer);
-
-    // Nếu ở chế độ câu thì liếc câu hiện tại, nếu toàn bài thì liếc toàn bài
-    if (activeMode === "FULL_PASSAGE") {
-        content.textContent = currentParagraph.noiDungEn || "";
-    } else {
-        const sentence = sentencesList[currentSentenceIdx];
-        content.textContent = sentence ? sentence.rawText : (currentParagraph.noiDungEn || "");
-    }
-
+    content.textContent = sentence.en;
     box.style.display = "block";
+
     let remaining = 3;
     if (countdown) countdown.textContent = remaining;
 
@@ -1174,12 +867,101 @@ function liecDoanVanGoc() {
         }
     }, 1000);
 }
-window.liecDoanVanGoc = liecDoanVanGoc;
+window.liecCauHienTai = liecCauHienTai;
 
-// Xử lý hoàn thành bài
-function xuLyHoanThanhBaiViet() {
-    dungTimer();
+// =========================================================
+// 9. BƯỚC 3: NHẬP TOÀN BÀI & NỘP CHẤM
+// =========================================================
+
+function batDauBuoc3NhapToanBai() {
     dungPhatAm();
+    if (!currentParagraph || !currentParagraph.noiDungEn) return;
+
+    document.getElementById("cardHocThuoc").style.display = "none";
+    document.getElementById("cardDichTungCau").style.display = "none";
+    const cardToanBai = document.getElementById("cardNhapToanBai");
+    cardToanBai.style.display = "block";
+
+    document.getElementById("tieuDeToanBai").textContent = currentParagraph.tieuDe || "Nhập toàn bài & Nộp chấm";
+    document.getElementById("lblTongSoTuToanBai").textContent = allWordsList.length;
+
+    // Hiển thị danh sách các câu tiếng Việt sát nghĩa làm sườn tham khảo
+    const boxRef = document.getElementById("boxThamKhaoToanBai");
+    if (boxRef) {
+        boxRef.innerHTML = sentencesList.map(s => `
+            <div class="mb-2 pb-1 border-bottom border-light">
+                <span class="badge bg-secondary-subtle text-secondary me-1">${s.index + 1}</span>
+                <span class="text-dark fw-semibold">${escapeHtml(s.viSat || currentParagraph.dichVi || "")}</span>
+            </div>
+        `).join("");
+    }
+
+    const inp = document.getElementById("inputToanBai");
+    if (inp) {
+        inp.value = "";
+        setTimeout(() => inp.focus(), 100);
+    }
+
+    const badge = document.getElementById("toanBaiSuggestionBadge");
+    if (badge) badge.style.display = "none";
+
+    khoiDongTimerToanBai();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+window.batDauBuoc3NhapToanBai = batDauBuoc3NhapToanBai;
+
+function khoiDongTimerToanBai() {
+    if (timerInterval) clearInterval(timerInterval);
+    startTime = Date.now();
+    timerInterval = setInterval(() => {
+        const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+        const mm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
+        const ss = String(elapsedSec % 60).padStart(2, "0");
+        const timerEl = document.getElementById("toanBaiTimer");
+        if (timerEl) timerEl.textContent = `${mm}:${ss}`;
+    }, 500);
+}
+
+function goiYTuTiepTheoToanBai() {
+    if (!currentParagraph || !currentParagraph.noiDungEn) return;
+    const inp = document.getElementById("inputToanBai");
+    if (!inp) return;
+
+    const currentVal = inp.value;
+    const hint = getNextWordHint(currentParagraph.noiDungEn, currentVal);
+
+    const badge = document.getElementById("toanBaiSuggestionBadge");
+    if (!hint) {
+        if (badge) {
+            badge.style.display = "inline-block";
+            badge.textContent = "🎉 Bạn đã gõ đủ toàn bộ bài học!";
+        }
+        return;
+    }
+
+    if (badge) {
+        badge.style.display = "inline-block";
+        badge.innerHTML = `👉 Từ tiếp theo: <strong>"${escapeHtml(hint.nextWord)}"</strong>`;
+    }
+
+    inp.value = currentVal + hint.insertText;
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+}
+window.goiYTuTiepTheoToanBai = goiYTuTiepTheoToanBai;
+
+function nopBaiToanBo() {
+    if (!currentParagraph || !currentParagraph.noiDungEn) return;
+    const inp = document.getElementById("inputToanBai");
+    const userText = (inp ? inp.value : "").trim();
+
+    if (!userText) {
+        alert("Vui lòng nhập đoạn văn của bạn trước khi nộp bài!");
+        if (inp) inp.focus();
+        return;
+    }
+
+    if (timerInterval) clearInterval(timerInterval);
 
     const elapsedSec = Math.max(1, Math.floor((Date.now() - startTime) / 1000));
     const mm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
@@ -1187,14 +969,33 @@ function xuLyHoanThanhBaiViet() {
     const timeStr = `${mm}:${ss}`;
 
     const minutes = Math.max(elapsedSec / 60, 0.05);
-    const wpm = Math.round(allWordsList.length / minutes);
-    const totalAttempts = correctCount + errorCount;
-    const accuracy = totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : 100;
+    const userWordsCount = userText.split(/\s+/).filter(Boolean).length;
+    const wpm = Math.round(userWordsCount / minutes);
 
+    const res = diffWords(currentParagraph.noiDungEn, userText);
+
+    // Đưa kết quả vào modal
     document.getElementById("modalResultTime").textContent = timeStr;
     document.getElementById("modalResultWpm").textContent = `${wpm} WPM`;
-    document.getElementById("modalResultAccuracy").textContent = `${accuracy}%`;
-    document.getElementById("modalResultWords").textContent = allWordsList.length;
+    document.getElementById("modalResultAccuracy").textContent = `${res.score}%`;
+    document.getElementById("modalResultWords").textContent = `${res.correctCount}/${res.totalCount}`;
+
+    // Render diff toàn bài vào modal
+    const diffContainer = document.getElementById("modalDiffContainer");
+    if (diffContainer) {
+        diffContainer.innerHTML = res.tokens.map(t => {
+            if (t.type === "correct") {
+                return `<span class="diff-word diff-correct">${escapeHtml(t.word)}</span>`;
+            } else if (t.type === "wrong") {
+                return `<span class="diff-word diff-wrong"><del>${escapeHtml(t.typedWord)}</del> ➔ ${escapeHtml(t.targetWord)}</span>`;
+            } else if (t.type === "missing") {
+                return `<span class="diff-word diff-missing">Thiếu: ${escapeHtml(t.word)}</span>`;
+            } else if (t.type === "extra") {
+                return `<span class="diff-word diff-extra">${escapeHtml(t.word)}</span>`;
+            }
+            return "";
+        }).join(" ");
+    }
 
     const btnLuu = document.getElementById("btnModalLuuBai");
     if (btnLuu) {
@@ -1207,15 +1008,22 @@ function xuLyHoanThanhBaiViet() {
         }
     }
 
+    if (res.score >= 80) {
+        playChimeSound();
+    } else {
+        playWrongSound();
+    }
+
     const modalEl = document.getElementById("modalHoanThanh");
     if (modalEl && window.bootstrap && window.bootstrap.Modal) {
         const m = bootstrap.Modal.getOrCreateInstance(modalEl);
         m.show();
     }
 }
+window.nopBaiToanBo = nopBaiToanBo;
 
 // =========================================================
-// 9. QUÉT VÀ TRÍCH XUẤT TỪ MỚI TRONG ĐOẠN VĂN
+// 10. QUÉT VÀ TRÍCH XUẤT TỪ MỚI TRONG ĐOẠN VĂN
 // =========================================================
 
 function moModalQuetTuMoi() {
@@ -1313,7 +1121,6 @@ async function luuTatCaTuMoiDaChon() {
     try {
         let boIdSuDung = boId;
         if (!boIdSuDung) {
-            // Tạo bộ mới tự động
             const tenBoMoi = `Từ mới - ${currentParagraph.tieuDe || "Bài học"}`.slice(0, 50);
             const rBo = await fetch("/api/bo-tu-vung/them", {
                 method: "POST",
@@ -1326,7 +1133,6 @@ async function luuTatCaTuMoiDaChon() {
             }
         }
 
-        // Lưu từng từ vào bộ
         for (const t of dsTu) {
             await fetch("/api/tu-vung/them", {
                 method: "POST",
@@ -1358,7 +1164,7 @@ async function luuTatCaTuMoiDaChon() {
 window.luuTatCaTuMoiDaChon = luuTatCaTuMoiDaChon;
 
 // =========================================================
-// 10. TEXT-TO-SPEECH AUDIO CONTROLLER
+// 11. AUDIO TTS CONTROLLER
 // =========================================================
 
 function phatToanBai() {
