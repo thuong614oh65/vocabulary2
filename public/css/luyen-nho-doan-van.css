@@ -1,12 +1,14 @@
 /* =========================================================
-   LUYỆN NHỚ ĐOẠN VĂN - STYLESHEET
-   Desktop + Tablet + Mobile Responsive
+   LUYỆN NHỚ ĐOẠN VĂN - STYLESHEET CHUẨN QUỐC TẾ
+   Dựa trên nguyên lý Active Recall của Memorize By Heart,
+   MonkeyType & DailyDictation
    ========================================================= */
 
 body {
     background-color: #f8fafc;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #1e293b;
+    min-height: 100vh;
 }
 
 .bg-primary-gradient {
@@ -41,7 +43,7 @@ body {
 }
 
 /* =========================================================
-   GIAI ĐOẠN 1: HỌC THUỘC
+   GIAI ĐOẠN 1: HỌC THUỘC (STUDY PHASE)
    ========================================================= */
 
 .paragraph-study-box {
@@ -53,11 +55,22 @@ body {
     border: 1.5px solid #e2e8f0;
 }
 
+.study-sentence {
+    display: inline;
+    padding: 2px 4px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.study-sentence:hover {
+    background-color: #f1f5f9;
+}
+
 .study-word {
     display: inline-block;
-    padding: 2px 4px;
-    margin: 1px 2px;
-    border-radius: 6px;
+    padding: 1px 3px;
+    margin: 1px;
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -73,96 +86,207 @@ body {
 }
 
 /* =========================================================
-   GIAI ĐOẠN 2: VIẾT LẠI TỪNG TỪ
+   GIAI ĐOẠN 2: THIẾT KẾ DÒNG CHỮ TỰ NHIÊN (NATURAL PROSE)
+   (LOẠI BỎ HOÀN TOÀN LƯỚI 150 Ô VUÔNG THÔ CỨNG)
    ========================================================= */
 
-.paragraph-stream-box {
-    font-size: 1.3rem;
-    line-height: 2.6;
-    border-radius: 14px;
+.mode-tab-pill {
+    cursor: pointer;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.mode-tab-pill:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.mode-tab-pill.active {
+    background: #ffffff;
+    color: #4f46e5;
+    border-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+}
+
+/* Sentence Navigator */
+.sentence-nav-bar {
     background: #ffffff;
     border: 1.5px solid #e2e8f0;
-    min-height: 140px;
+    border-radius: 12px;
+    padding: 8px 16px;
 }
 
-.stream-word {
+.sentence-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.sentence-pill:hover {
+    border-color: #4f46e5;
+    color: #4f46e5;
+    transform: scale(1.08);
+}
+
+.sentence-pill.active {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+}
+
+.sentence-pill.completed {
+    background: #dcfce7;
+    border-color: #22c55e;
+    color: #15803d;
+}
+
+/* Prose Stage Box */
+.prose-stage-box {
+    font-size: 1.35rem;
+    line-height: 2.3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1e293b;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 26px 30px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    min-height: 120px;
+    word-spacing: 2px;
+    letter-spacing: 0.2px;
+}
+
+/* Word Token Inline */
+.word-token {
     display: inline-block;
-    padding: 2px 6px;
-    margin: 2px 3px;
-    border-radius: 6px;
-    vertical-align: middle;
-    transition: all 0.2s ease;
+    position: relative;
+    padding: 1px 4px;
+    margin: 2px 1px;
+    border-radius: 5px;
+    transition: all 0.18s ease;
+    vertical-align: baseline;
 }
 
-.stream-word.done {
+/* Đã gõ đúng: xanh lá tươi tắn */
+.word-token.done {
     color: #16a34a;
     font-weight: 700;
-    background-color: #f0fdf4;
-    border: 1px solid #bbf7d0;
+    background-color: rgba(34, 197, 94, 0.12);
 }
 
-.stream-word.done::after {
-    content: " ✓";
-    font-size: 0.85rem;
-    color: #16a34a;
-}
-
-.stream-word.current {
+/* Từ hiện tại cần gõ */
+.word-token.current {
     color: #1d4ed8;
     font-weight: 800;
     background-color: #eff6ff;
-    border: 2px solid #3b82f6;
-    padding: 2px 10px;
-    border-radius: 8px;
-    animation: streamPulse 1.2s infinite ease-in-out;
-    box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+    border-bottom: 3.5px solid #2563eb;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    animation: wordCurrentPulse 1.4s infinite ease-in-out;
 }
 
-@keyframes streamPulse {
-    0% { transform: scale(1); box-shadow: 0 0 4px rgba(59, 130, 246, 0.2); }
-    50% { transform: scale(1.06); box-shadow: 0 0 14px rgba(59, 130, 246, 0.45); }
-    100% { transform: scale(1); box-shadow: 0 0 4px rgba(59, 130, 246, 0.2); }
+@keyframes wordCurrentPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); background-color: #dbeafe; }
+    100% { transform: scale(1); }
 }
 
-.stream-word.upcoming {
+/* Từ bị bỏ qua (Skip) */
+.word-token.skipped {
+    color: #d97706;
+    background-color: #fef3c7;
+    text-decoration: line-through;
+    font-weight: 600;
+}
+
+/* Các kiểu che từ sắp tới */
+.word-token.upcoming.mask-blank {
     color: #94a3b8;
-    background-color: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    font-weight: 500;
-    letter-spacing: 2px;
+    border-bottom: 2px dashed #cbd5e1;
+    font-family: monospace;
+    letter-spacing: 1px;
+    padding: 0 2px;
 }
 
-.typing-input-card {
+.word-token.upcoming.mask-firstletter {
+    color: #475569;
+    font-weight: 600;
+    border-bottom: 1.5px dashed #cbd5e1;
+}
+
+.word-token.upcoming.mask-ghost {
+    color: #94a3b8;
+    opacity: 0.4;
+    user-select: none;
+}
+
+/* Dấu câu đuôi tự nhiên */
+.token-punct {
+    color: #334155;
+    font-weight: normal;
+    margin-right: 4px;
+}
+
+/* =========================================================
+   CÔNG THÁI HỌC: Ô GÕ CỐ ĐỊNH NGAY TRONG TẦM MẮT (STICKY DECK)
+   ========================================================= */
+
+.typing-deck {
+    background: #f8fafc;
     border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
-.typing-input {
+.typing-input-main {
     border-radius: 12px;
     border: 2.5px solid #cbd5e1;
     font-family: inherit;
-    transition: all 0.15s ease;
+    font-size: 1.35rem;
+    font-weight: 700;
     padding: 14px 20px;
+    transition: all 0.15s ease;
+    background: #ffffff;
 }
 
-.typing-input:focus {
+.typing-input-main:focus {
     border-color: #4f46e5;
     box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+    outline: none;
 }
 
-.typing-input.is-correct-flash {
+.typing-input-main.is-correct-flash {
     border-color: #22c55e !important;
     background-color: #f0fdf4 !important;
     box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3) !important;
 }
 
-.typing-input.is-wrong-flash {
+.typing-input-main.is-wrong-flash {
     border-color: #ef4444 !important;
     background-color: #fef2f2 !important;
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3) !important;
-    animation: typingShake 0.35s ease;
+    animation: inputShake 0.35s ease;
 }
 
-@keyframes typingShake {
+@keyframes inputShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-8px); }
     40%, 80% { transform: translateX(8px); }
@@ -173,23 +297,27 @@ body {
     right: 15px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: 20px;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .feedback-pill.pill-correct {
     background-color: #dcfce7;
     color: #15803d;
+    border: 1px solid #86efac;
 }
 
 .feedback-pill.pill-wrong {
     background-color: #fee2e2;
     color: #b91c1c;
+    border: 1px solid #fca5a5;
 }
 
-/* Modal styles */
+/* Modal saved items */
 .saved-item-card {
     transition: all 0.15s ease;
     border: 1px solid #e2e8f0;
