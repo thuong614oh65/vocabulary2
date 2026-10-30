@@ -1830,17 +1830,72 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
             if (!doanVan) {
                 return jsonResponse({ error: "Vui lòng nhập đoạn văn cần quét từ mới!" }, 400, sid);
             }
-            const tatCaTu = await getTatCaTuByUser(env, taiKhoanId);
+            const [dsBo, tatCaTu] = await Promise.all([
+                getBoTuVungByUser(env, taiKhoanId),
+                getTatCaTuByUser(env, taiKhoanId)
+            ]);
             const ketQua = await trichXuatTuMoiTuDoanVan(env, doanVan, tatCaTu);
             return jsonResponse({
                 ok: true,
                 ketQua,
+                dsBo,
                 tongTuDaQuet: doanVan.split(/\s+/).filter(Boolean).length,
                 soTuDaCo: tatCaTu.length
             }, 200, sid);
         } catch (err) {
             if (err && err.isNeedClientGemini) throw err;
             return jsonResponse({ error: "Lỗi quét từ mới: " + (err.message || "Vui lòng thử lại") }, 500, sid);
+        }
+    }
+
+    // =========================================================
+    // LƯU HÀNG LOẠT TỪ MỚI VÀO BỘ HỌC
+    // =========================================================
+    if (pathname === "/api/tu-vung/luu-hang-loat" && method === "POST") {
+        try {
+            const body = await request.json();
+            const dsTu = Array.isArray(body.dsTu) ? body.dsTu : [];
+            let boId = body.boId ? Number(body.boId) : null;
+            let tenBo = (body.tenBo || "").trim();
+
+            if (dsTu.length === 0) {
+                return jsonResponse({ error: "Vui lòng chọn ít nhất 1 từ vựng để lưu!" }, 400, sid);
+            }
+
+            if (!boId) {
+                const dsBo = await getBoTuVungByUser(env, taiKhoanId);
+                tenBo = tenBo || `Bộ ${dsBo.length + 1}`;
+                const res = await sqlQuery(
+                    env,
+                    "INSERT INTO bo_tu_vung (ten_bo, ngay_tao, tai_khoan_id) VALUES ($1, CURRENT_TIMESTAMP, $2) RETURNING id",
+                    [tenBo, taiKhoanId]
+                );
+                boId = Number(res[0].id);
+            }
+
+            let savedCount = 0;
+            for (const item of dsTu) {
+                const ta = (item.tiengAnh || "").trim();
+                if (!ta) continue;
+                const tv = (item.tiengViet || "").trim();
+                const pa = (item.phienAm || "").trim();
+                const vd = (item.viDu || "").trim();
+                await sqlQuery(
+                    env,
+                    "INSERT INTO tu_vung (tieng_anh, tieng_viet, phien_am, vi_du, so_lan_sai, bo_id) VALUES ($1, $2, $3, $4, 0, $5)",
+                    [ta, tv, pa, vd, boId]
+                );
+                savedCount++;
+            }
+
+            return jsonResponse({
+                ok: true,
+                message: `Đã lưu thành công ${savedCount} từ vựng vào bộ học!`,
+                boId,
+                soLuong: savedCount
+            }, 200, sid);
+        } catch (err) {
+            return jsonResponse({ error: "Lỗi lưu từ: " + (err.message || String(err)) }, 500, sid);
         }
     }
     try {

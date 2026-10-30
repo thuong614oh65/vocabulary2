@@ -1046,6 +1046,15 @@ async function quetVaTrichXuatTuMoi() {
     const countBadge = document.getElementById("quetCountBadge");
     const tableBody = document.getElementById("quetTableBody");
     const emptyBox = document.getElementById("quetEmptyBox");
+    const btnQuet = document.getElementById("btnQuetTuMoiBai");
+    const inputTenBo = document.getElementById("inputTenBoTuMoi");
+    const selectBo = document.getElementById("selectBoDeLuuTu");
+
+    const originalBtnHtml = btnQuet ? btnQuet.innerHTML : "";
+    if (btnQuet) {
+        btnQuet.disabled = true;
+        btnQuet.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span><span>Đang tra từ mới...</span>';
+    }
 
     if (loadingBox) loadingBox.style.display = "block";
     if (resultBox) resultBox.style.display = "none";
@@ -1072,26 +1081,56 @@ async function quetVaTrichXuatTuMoi() {
             return;
         }
 
+        // Tự động gợi ý tên bộ từ vựng
+        if (inputTenBo) {
+            const tieuDeClean = (currentParagraph.tieuDe || "Bài học").replace(/[^\p{L}\p{N}\s\-_]/gu, "").trim();
+            inputTenBo.value = `Từ mới - ${tieuDeClean}`.slice(0, 50);
+            inputTenBo.disabled = false;
+        }
+
+        // Cập nhật danh sách bộ nếu có
+        if (selectBo && Array.isArray(data.dsBo) && data.dsBo.length > 0) {
+            selectBo.innerHTML = `
+                <option value="">-- Lưu thành bộ mới (theo tên ở bên) --</option>
+                ${data.dsBo.map(b => `<option value="${b.id}">${escapeHtml(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("")}
+            `;
+        }
+
         if (countBadge) countBadge.textContent = `${dsTuMoi.length} từ`;
         if (tableBody) {
             tableBody.innerHTML = dsTuMoi.map((t, idx) => `
                 <tr>
                     <td class="text-center">
-                        <input type="checkbox" class="form-check-input chk-tu-moi" checked value="${idx}" data-word='${escapeHtml(JSON.stringify(t))}'>
+                        <input type="checkbox" class="form-check-input chk-tu-moi" checked value="${idx}" onchange="capNhatDemTuModal()">
                     </td>
-                    <td class="fw-bold text-primary">${escapeHtml(t.tiengAnh)}</td>
-                    <td class="text-muted fst-italic">${escapeHtml(t.phienAm || "")}</td>
-                    <td>${escapeHtml(t.tiengViet || "")}</td>
                     <td>
+                        <input class="form-control form-control-sm fw-bold text-primary val-tu-en" value="${escapeHtml(t.tiengAnh || '')}">
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm text-muted val-tu-pa" value="${escapeHtml(t.phienAm || '')}">
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm val-tu-vi" value="${escapeHtml(t.tiengViet || '')}">
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm val-tu-vd" value="${escapeHtml(t.viDu || '')}">
+                    </td>
+                    <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-success" onclick="docTu('${escapeJs(t.tiengAnh)}')">🔊</button>
                     </td>
                 </tr>
             `).join("");
         }
         if (resultBox) resultBox.style.display = "block";
+        capNhatDemTuModal();
     } catch (e) {
         if (loadingBox) loadingBox.style.display = "none";
         alert("Lỗi khi quét từ mới: " + e.message);
+    } finally {
+        if (btnQuet) {
+            btnQuet.disabled = false;
+            btnQuet.innerHTML = originalBtnHtml;
+        }
     }
 }
 window.quetVaTrichXuatTuMoi = quetVaTrichXuatTuMoi;
@@ -1100,53 +1139,74 @@ function chonTatCaTuMoi(chkAll) {
     document.querySelectorAll(".chk-tu-moi").forEach(c => {
         c.checked = chkAll.checked;
     });
+    capNhatDemTuModal();
 }
 window.chonTatCaTuMoi = chonTatCaTuMoi;
 
+function capNhatDemTuModal() {
+    const total = document.querySelectorAll(".chk-tu-moi").length;
+    const checked = document.querySelectorAll(".chk-tu-moi:checked").length;
+    const lbl = document.getElementById("lblSoTuModalChon");
+    if (lbl) lbl.textContent = `${checked} / ${total}`;
+
+    const btnLuu = document.getElementById("btnLuuTuMoiVaoBo");
+    if (btnLuu) {
+        btnLuu.disabled = (checked === 0);
+    }
+}
+window.capNhatDemTuModal = capNhatDemTuModal;
+
+function xuLyChonBoModal(val) {
+    const inputTenBo = document.getElementById("inputTenBoTuMoi");
+    if (!inputTenBo) return;
+    if (val && val.trim() !== "") {
+        inputTenBo.disabled = true;
+        inputTenBo.classList.add("bg-secondary-subtle");
+    } else {
+        inputTenBo.disabled = false;
+        inputTenBo.classList.remove("bg-secondary-subtle");
+    }
+}
+window.xuLyChonBoModal = xuLyChonBoModal;
+
 async function luuTatCaTuMoiDaChon() {
-    const boId = document.getElementById("selectBoDeLuuTu")?.value;
     const chks = Array.from(document.querySelectorAll(".chk-tu-moi:checked"));
     if (chks.length === 0) {
         alert("Vui lòng tích chọn ít nhất 1 từ để lưu!");
         return;
     }
 
-    const dsTu = chks.map(c => JSON.parse(c.getAttribute("data-word")));
+    const dsTu = chks.map(c => {
+        const tr = c.closest("tr");
+        return {
+            tiengAnh: tr.querySelector(".val-tu-en")?.value || "",
+            phienAm: tr.querySelector(".val-tu-pa")?.value || "",
+            tiengViet: tr.querySelector(".val-tu-vi")?.value || "",
+            viDu: tr.querySelector(".val-tu-vd")?.value || ""
+        };
+    }).filter(t => t.tiengAnh.trim() !== "");
+
+    const boId = document.getElementById("selectBoDeLuuTu")?.value || null;
+    const tenBo = document.getElementById("inputTenBoTuMoi")?.value || "";
+
     const btnLuu = document.getElementById("btnLuuTuMoiVaoBo");
     if (btnLuu) {
         btnLuu.disabled = true;
-        btnLuu.textContent = "⏳ Đang lưu...";
+        btnLuu.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> ⏳ Đang lưu...';
     }
 
     try {
-        let boIdSuDung = boId;
-        if (!boIdSuDung) {
-            const tenBoMoi = `Từ mới - ${currentParagraph.tieuDe || "Bài học"}`.slice(0, 50);
-            const rBo = await fetch("/api/bo-tu-vung/them", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tenBo: tenBoMoi })
-            });
-            const dBo = await rBo.json();
-            if (dBo.ok && dBo.bo) {
-                boIdSuDung = dBo.bo.id;
-            }
+        const resp = await fetch("/api/tu-vung/luu-hang-loat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dsTu, boId, tenBo })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+            throw new Error(data.error || "Không thể lưu từ mới lúc này");
         }
 
-        for (const t of dsTu) {
-            await fetch("/api/tu-vung/them", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    tiengAnh: t.tiengAnh,
-                    tiengViet: t.tiengViet,
-                    phienAm: t.phienAm || "",
-                    boId: boIdSuDung
-                })
-            });
-        }
-
-        alert(`✅ Đã lưu thành công ${dsTu.length} từ mới vào bộ từ vựng của bạn!`);
+        alert(`✅ Đã lưu thành công ${data.soLuong || dsTu.length} từ vựng vào bộ học!`);
         const modalEl = document.getElementById("modalQuetTuMoi");
         if (modalEl && window.bootstrap && window.bootstrap.Modal) {
             const m = bootstrap.Modal.getInstance(modalEl);
@@ -1157,7 +1217,7 @@ async function luuTatCaTuMoiDaChon() {
     } finally {
         if (btnLuu) {
             btnLuu.disabled = false;
-            btnLuu.textContent = "💾 Lưu các từ đã chọn vào Bộ học";
+            btnLuu.innerHTML = "💾 Lưu các từ đã chọn vào Bộ học";
         }
     }
 }
@@ -1259,3 +1319,11 @@ function escapeJs(str) {
     if (!str) return "";
     return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
+
+// Mặc định focus vào ô nhập đoạn văn khi vào trang
+document.addEventListener("DOMContentLoaded", function () {
+    const textarea = document.getElementById("nhapNoiDungEn");
+    if (textarea) {
+        setTimeout(() => textarea.focus(), 150);
+    }
+});

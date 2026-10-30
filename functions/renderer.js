@@ -1051,24 +1051,51 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
                 <p class="text-muted mb-0">Học thuộc từng câu ➔ Thử thách trí nhớ bằng cách viết lại ➔ Chấm điểm từng từ thời gian thực!</p>
             </div>
 
-            <!-- Tabs chọn phương thức -->
+            <!-- Tabs chọn phương thức: MẶC ĐỊNH HIỂN THỊ TỰ NHẬP TRƯỚC -->
             <ul class="nav nav-pills nav-justified mb-4 p-1 bg-light rounded-pill border" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active rounded-pill fw-bold" id="tab-ai-tab" data-bs-toggle="pill" data-bs-target="#tab-ai" type="button" role="tab">
-                        🤖 AI sinh đoạn văn thông minh
+                    <button class="nav-link active rounded-pill fw-bold" id="tab-nhap-tab" data-bs-toggle="pill" data-bs-target="#tab-nhap" type="button" role="tab">
+                        ✍️ Tự nhập / Dán đoạn văn của bạn
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold" id="tab-nhap-tab" data-bs-toggle="pill" data-bs-target="#tab-nhap" type="button" role="tab">
-                        ✍️ Tự nhập / Dán đoạn văn của bạn
+                    <button class="nav-link rounded-pill fw-bold" id="tab-ai-tab" data-bs-toggle="pill" data-bs-target="#tab-ai" type="button" role="tab">
+                        🤖 AI sinh đoạn văn thông minh
                     </button>
                 </li>
             </ul>
 
             <div class="tab-content" id="pills-tabContent">
                 
-                <!-- TAB 1: AI SINH ĐOẠN VĂN -->
-                <div class="tab-pane fade show active" id="tab-ai" role="tabpanel">
+                <!-- TAB 1: TỰ NHẬP ĐOẠN VĂN (MẶC ĐỊNH HIỂN THỊ TRƯỚC) -->
+                <div class="tab-pane fade show active" id="tab-nhap" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">🏷️ Tiêu đề bài học (Tùy chọn):</label>
+                            <input type="text" class="form-control" id="nhapTieuDe" placeholder="Ví dụ: My Favorite Hobby, An Inspiring Story...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">📝 Nội dung đoạn văn tiếng Anh:</label>
+                            <textarea class="form-control" id="nhapNoiDungEn" rows="6" placeholder="Dán hoặc gõ đoạn văn tiếng Anh bạn muốn học thuộc vào đây..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="nhapChkLuu" checked>
+                                <label class="form-check-label fw-semibold" for="nhapChkLuu">
+                                    💾 Lưu bài này vào kho bài học đã lưu
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-3 text-center">
+                            <button type="button" class="btn btn-success px-5 py-3 fw-bold rounded-pill shadow" id="btnBatDauTuNhap" onclick="batDauTuNhap()">
+                                🚀 Bắt Đầu Học Thuộc Đoạn Văn Này
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: AI SINH ĐOẠN VĂN -->
+                <div class="tab-pane fade" id="tab-ai" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-md-7">
                             <label class="form-label fw-bold">🏷️ Chủ đề đoạn văn:</label>
@@ -1108,33 +1135,6 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
                         <div class="col-12 mt-3 text-center">
                             <button type="button" class="btn btn-primary-gradient px-5 py-3 fw-bold text-white rounded-pill shadow" id="btnTaoDoanVanAi" onclick="taoDoanVanAi()">
                                 ✨ AI Tạo Đoạn Văn &amp; Bắt Đầu Học Thuộc
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: TỰ NHẬP ĐOẠN VĂN -->
-                <div class="tab-pane fade" id="tab-nhap" role="tabpanel">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label fw-bold">🏷️ Tiêu đề bài học (Tùy chọn):</label>
-                            <input type="text" class="form-control" id="nhapTieuDe" placeholder="Ví dụ: My Favorite Hobby, An Inspiring Story...">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">📝 Nội dung đoạn văn tiếng Anh:</label>
-                            <textarea class="form-control" id="nhapNoiDungEn" rows="6" placeholder="Dán hoặc gõ đoạn văn tiếng Anh bạn muốn học thuộc vào đây..."></textarea>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="nhapChkLuu" checked>
-                                <label class="form-check-label fw-semibold" for="nhapChkLuu">
-                                    💾 Lưu bài này vào kho bài học đã lưu
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-12 mt-3 text-center">
-                            <button type="button" class="btn btn-success px-5 py-3 fw-bold rounded-pill shadow" id="btnBatDauTuNhap" onclick="batDauTuNhap()">
-                                🚀 Bắt Đầu Học Thuộc Đoạn Văn Này
                             </button>
                         </div>
                     </div>
@@ -1219,11 +1219,11 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
             <!-- Quick Batch Vocabulary Scanner -->
             <div class="p-3 rounded-3 bg-light border d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                 <div>
-                    <div class="fw-bold text-dark">🔍 Bạn muốn học các từ mới có trong bài này?</div>
-                    <small class="text-muted">Tự động loại bỏ từ đã có trong tài khoản và tên riêng, hiển thị phiên âm &amp; nghĩa để lưu nhanh.</small>
+                    <div class="fw-bold text-dark fs-6">🔍 Bạn muốn học các từ mới có trong bài này?</div>
+                    <small class="text-muted">Tự động lọc bỏ các tên riêng và những từ vựng bạn đã có trong tài khoản.</small>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-success fw-bold px-3 py-2 rounded-pill shadow-sm" onclick="moModalQuetTuMoi()">
-                    ✨ Quét &amp; Tra từ mới trong bài
+                <button type="button" class="btn btn-success fw-bold px-4 py-2 rounded-pill shadow-sm d-flex align-items-center gap-2" id="btnQuetTuMoiBai" onclick="moModalQuetTuMoi()">
+                    <span>🔍 Tra từ mới trong bài</span>
                 </button>
             </div>
 
@@ -1443,16 +1443,16 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
      MODAL QUÉT & TRÍCH XUẤT TỪ MỚI TRONG BÀI (#modalQuetTuMoi)
      ========================================================= -->
 <div class="modal fade" id="modalQuetTuMoi" tabindex="-1" aria-labelledby="modalQuetTuMoiLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title fw-bold" id="modalQuetTuMoiLabel">🔍 Quét &amp; Tra Từ Mới Trong Đoạn Văn</h5>
+                <h5 class="modal-title fw-bold" id="modalQuetTuMoiLabel">🔍 Tra Từ Mới Trong Đoạn Văn</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <div id="quetLoadingBox" class="text-center py-4">
-                    <div class="spinner-border text-success mb-2" role="status"></div>
-                    <div class="fw-bold text-dark">🤖 AI đang phân tích bài học, loại trừ từ đã có và tên riêng...</div>
+                    <div class="spinner-border text-success mb-2" role="status" style="width: 2.2rem; height: 2.2rem;"></div>
+                    <div class="fw-bold text-dark">Đang phân tích kỹ lưỡng và tra từ mới từ bài học...</div>
                 </div>
 
                 <div id="quetEmptyBox" class="text-center py-4 text-muted" style="display:none;">
@@ -1460,30 +1460,32 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
                 </div>
 
                 <div id="quetResultBox" style="display:none;">
-                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                        <span class="fw-bold text-dark">
-                            Tìm thấy: <span class="badge bg-success" id="quetCountBadge">0 từ</span>
-                        </span>
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="small text-muted fw-bold">Lưu vào bộ:</label>
-                            <select id="selectBoDeLuuTu" class="form-select form-select-sm" style="max-width: 250px;">
-                                <option value="">-- Tự động tạo bộ mới theo bài này --</option>
+                    <div class="row g-2 mb-3 p-3 bg-light rounded-3 border align-items-center">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-success mb-1 small">🏷️ Tên bộ từ vựng mới:</label>
+                            <input type="text" class="form-control form-control-sm shadow-sm" id="inputTenBoTuMoi" placeholder="Từ mới - Bài học">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-primary mb-1 small">📁 Hoặc lưu vào bộ đã có:</label>
+                            <select id="selectBoDeLuuTu" class="form-select form-select-sm shadow-sm" onchange="xuLyChonBoModal(this.value)">
+                                <option value="">-- Lưu thành bộ mới (theo tên ở bên) --</option>
                                 ${dsBoOpts}
                             </select>
                         </div>
                     </div>
 
-                    <div class="table-responsive border rounded-3 mb-3" style="max-height: 380px;">
+                    <div class="table-responsive border rounded-3 mb-3 shadow-sm" style="max-height: 420px;">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                            <thead class="table-light sticky-top">
                                 <tr>
-                                    <th style="width: 40px;" class="text-center">
-                                        <input type="checkbox" class="form-check-input" checked onclick="chonTatCaTuMoi(this)">
+                                    <th style="width: 45px;" class="text-center">
+                                        <input type="checkbox" class="form-check-input" id="chkModalTatCa" checked onclick="chonTatCaTuMoi(this)">
                                     </th>
-                                    <th>Từ tiếng Anh</th>
-                                    <th>Phiên âm</th>
-                                    <th>Nghĩa tiếng Việt</th>
-                                    <th style="width: 50px;">Phát âm</th>
+                                    <th style="width: 170px;">English</th>
+                                    <th style="width: 150px;">Phiên âm</th>
+                                    <th style="width: 200px;">Nghĩa tiếng Việt</th>
+                                    <th>Ví dụ</th>
+                                    <th style="width: 50px;" class="text-center">Đọc</th>
                                 </tr>
                             </thead>
                             <tbody id="quetTableBody">
@@ -1492,7 +1494,8 @@ export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaL
                         </table>
                     </div>
 
-                    <div class="text-end">
+                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                        <span class="text-muted small">Đã chọn: <strong id="lblSoTuModalChon" class="text-success">0</strong> từ</span>
                         <button type="button" class="btn btn-success fw-bold px-4 py-2 rounded-pill shadow-sm" id="btnLuuTuMoiVaoBo" onclick="luuTatCaTuMoiDaChon()">
                             💾 Lưu các từ đã chọn vào Bộ học
                         </button>
