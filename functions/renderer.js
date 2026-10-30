@@ -59,6 +59,18 @@ export function renderIndex(taiKhoan = null) {
             `<$1>${esc(tenHienThi)}</$1>`
         );
     }
+
+    const cardLuyenNho = `
+            <!-- Luyện nhớ đoạn văn -->
+            <a href="/luyen-nho-doan-van" class="nut nut-luyen-nho" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #fff;">
+                <span class="nut-icon">📝</span>
+                <span>Luyện nhớ đoạn văn</span>
+            </a>
+    `;
+    if (!html.includes('/luyen-nho-doan-van')) {
+        html = html.replace(/(href="\/hoc"[\s\S]*?<\/a>)/, `$1\n${cardLuyenNho}`);
+    }
+
     return html;
 }
 
@@ -184,14 +196,19 @@ export function renderHoc({ hocDTO, dsBo = [], dsTatCa = [], dsTheoBo = [] }) {
         }
     }
 
-    // Inject "Kể chuyện ghi nhớ (AI Story)" button into btn-action-group
+    // Inject "Kể chuyện ghi nhớ (AI Story)" & "Luyện nhớ đoạn văn" buttons into btn-action-group
     const btnAiStoryMain = `<button type="button"
                     id="btnKecChuyenAi"
                     onclick="moModalHocCotTruyen()"
                     class="btn btn-ai-story px-4 py-2 fw-bold text-white shadow-sm"
                     title="Phương pháp siêu trí nhớ: Bức tranh tâm trí sinh động &amp; Cốt truyện móc xích">
                 🎬 Kể chuyện ghi nhớ (AI Story)
-            </button>`;
+            </button>
+            <a href="/luyen-nho-doan-van"
+               class="btn btn-primary px-4 py-2 fw-bold shadow-sm"
+               title="Luyện nhớ đoạn văn: Tự nhập hoặc AI sinh đoạn văn, học thuộc và gõ lại chấm từng từ tức thì">
+                📝 Luyện nhớ đoạn văn
+            </a>`;
     const actionGroupIdx = html.indexOf('btn-action-group');
     if (actionGroupIdx !== -1) {
         const phanXaIdx = html.indexOf('value="phan-xa"', actionGroupIdx);
@@ -481,7 +498,7 @@ export function renderHocLuot2(dsHoc = []) {
 }
 
 // 9. Render them-tu.html
-export function renderThemTu({ noiDung = "", ketQua = null, dsBo = [], tenBoGoiY = "Bộ mới", thongBao = null }) {
+export function renderThemTu({ noiDung = "", ketQua = null, dsBo = [], tenBoGoiY = "Bộ mới", thongBao = null, laQuetDoanVan = false }) {
     const alertHtml = thongBao ? `<div class="alert alert-success alert-toast">${esc(thongBao)}</div>` : "";
     const boSelectHtml = dsBo.length > 0 ? `<div class="col-md-6">
         <label class="form-label fw-bold text-primary mb-1">📁 Hoặc lưu vào bộ đã có sẵn:</label>
@@ -491,8 +508,21 @@ export function renderThemTu({ noiDung = "", ketQua = null, dsBo = [], tenBoGoiY
         </select>
     </div>` : "";
 
+    const thongBaoQuet = laQuetDoanVan ? `
+        <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2 shadow-sm rounded-3">
+            <span class="fs-4">✨</span>
+            <div>
+                <strong>Chế độ quét từ mới từ đoạn văn:</strong> Đã tự động lọc bỏ các tên riêng và những từ vựng đã có trong các bộ từ của bạn!
+            </div>
+        </div>
+    ` : "";
+
     const ketQuaHtml = Array.isArray(ketQua) ? `<div class="main-card mt-4">
-        <h4 class="mb-3 text-success fw-bold">KẾT QUẢ TRA TỪ (<span>${ketQua.length}</span> từ)</h4>
+        ${thongBaoQuet}
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h4 class="m-0 text-success fw-bold">KẾT QUẢ TỪ MỚI (<span>${ketQua.length}</span> từ)</h4>
+            <div class="small text-muted">Bỏ tích những từ bạn không muốn lưu</div>
+        </div>
         <div class="row g-3 mb-3 p-3 bg-light rounded-3 border align-items-center">
             <div class="col-md-6">
                 <label class="form-label fw-bold text-success mb-1">🏷️ Tên bộ từ vựng:</label>
@@ -501,22 +531,44 @@ export function renderThemTu({ noiDung = "", ketQua = null, dsBo = [], tenBoGoiY
             ${boSelectHtml}
         </div>
         <div class="table-responsive shadow-sm rounded-3">
-            <table class="table table-bordered align-middle">
-                <thead>
-                    <tr><th style="width: 60px;">STT</th><th style="width: 200px;">English</th><th style="width: 250px;">Nghĩa</th><th style="width: 180px;">Phiên âm</th><th>Ví dụ</th></tr>
+            <table class="table table-bordered align-middle table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;" class="text-center">STT</th>
+                        <th style="width: 180px;">English</th>
+                        <th style="width: 220px;">Nghĩa</th>
+                        <th style="width: 160px;">Phiên âm</th>
+                        <th>Ví dụ</th>
+                        <th style="width: 60px;" class="text-center">Đọc</th>
+                        <th style="width: 70px;" class="text-center">
+                            <label class="d-inline-flex align-items-center gap-1 m-0" style="cursor: pointer;" title="Chọn / Bỏ chọn tất cả">
+                                <span>Lưu</span>
+                                <input type="checkbox" id="chkLuuTatCa" checked onchange="toggleChonTatCaLuu(this.checked)">
+                            </label>
+                        </th>
+                    </tr>
                 </thead>
                 <tbody>
                     ${ketQua.map((tu, idx) => `<tr>
-                        <td class="text-center text-muted">${idx + 1}</td>
-                        <td><input type="hidden" name="tiengAnh" value="${esc(tu.tiengAnh)}"><strong>${esc(tu.tiengAnh)}</strong></td>
-                        <td><input class="form-control" name="tiengViet" value="${esc(tu.tiengViet)}"></td>
-                        <td><input class="form-control" name="phienAm" value="${esc(tu.phienAm)}"></td>
-                        <td><input class="form-control" name="viDu" value="${esc(tu.viDu)}"></td>
+                        <td class="text-center text-muted fw-bold">${idx + 1}</td>
+                        <td><input type="hidden" name="tiengAnh" value="${esc(tu.tiengAnh)}" class="val-tieng-anh"><strong>${esc(tu.tiengAnh)}</strong></td>
+                        <td><input class="form-control form-control-sm" name="tiengViet" value="${esc(tu.tiengViet)}"></td>
+                        <td><input class="form-control form-control-sm" name="phienAm" value="${esc(tu.phienAm)}"></td>
+                        <td><input class="form-control form-control-sm" name="viDu" value="${esc(tu.viDu)}"></td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="docTu('${escJs(tu.tiengAnh)}')">🔊</button>
+                        </td>
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input chk-luu-item" checked onchange="capNhatDongLuu(this)">
+                        </td>
                     </tr>`).join("")}
                 </tbody>
             </table>
         </div>
-        <button type="submit" class="btn btn-success mt-3 px-4 py-2 fw-bold">💾 Lưu vào CSDL</button>
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <span class="text-muted small">Đã chọn: <strong id="lblSoTuDuocChon" class="text-success">${ketQua.length}</strong> / ${ketQua.length} từ</span>
+            <button type="submit" class="btn btn-success px-4 py-2 fw-bold shadow-sm" id="btnXacNhanLuu">💾 Lưu các từ đã chọn vào CSDL</button>
+        </div>
     </div>` : "";
 
     return `<!DOCTYPE html>
@@ -526,7 +578,7 @@ export function renderThemTu({ noiDung = "", ketQua = null, dsBo = [], tenBoGoiY
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thêm từ vựng</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/tra-hang-loat.css?v=3">
+    <link rel="stylesheet" href="/css/tra-hang-loat.css?v=4">
 </head>
 <body>
 ${alertHtml}
@@ -553,20 +605,37 @@ ${alertHtml}
             <div class="spinner-border spinner-border-sm text-success" role="status"></div>
             <span id="loadingText">Đang nhận diện từ vựng từ ảnh bằng AI...</span>
         </div>
-        <form action="/tra-hang-loat" method="post">
-            <label class="form-label fw-bold mb-2">Danh sách từ vựng (Mỗi dòng một từ):</label>
-            <textarea id="noiDung" name="noiDung" class="form-control" rows="10" placeholder="hello&#10;apple&#10;computer&#10;(Hoặc thêm ảnh/file ở trên để hệ thống tự điền)">${esc(noiDung)}</textarea>
-            <div class="mt-4 d-flex gap-2 flex-wrap">
-                <button type="submit" id="btnTraHangLoat" class="btn btn-primary px-4 fw-bold">🔍 Tra hàng loạt</button>
+        <form action="/tra-hang-loat" method="post" id="formTraTu">
+            <input type="hidden" name="cheDoQuet" id="cheDoQuet" value="${laQuetDoanVan ? 'doan-van' : 'tu'}">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <label class="form-label fw-bold mb-0">Nội dung văn bản / Danh sách từ:</label>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn ${laQuetDoanVan ? 'btn-outline-primary' : 'btn-primary'} fw-semibold" id="btnTabTu" onclick="chuyenCheDoThemTu('tu')">
+                        📋 Danh sách từ (1 từ/dòng)
+                    </button>
+                    <button type="button" class="btn ${laQuetDoanVan ? 'btn-primary' : 'btn-outline-primary'} fw-semibold" id="btnTabDoanVan" onclick="chuyenCheDoThemTu('doan-van')">
+                        📑 Quét từ mới từ đoạn văn
+                    </button>
+                </div>
+            </div>
+            <textarea id="noiDung" name="noiDung" class="form-control" rows="10" placeholder="${laQuetDoanVan ? 'Dán hoặc viết đoạn văn tiếng Anh vào đây. Hệ thống sẽ tự động quét, loại bỏ tên riêng và từ đã có trong tài khoản...' : 'hello&#10;apple&#10;computer&#10;(Hoặc thêm ảnh/file ở trên để hệ thống tự điền)'}">${esc(noiDung)}</textarea>
+            <div class="mt-4 d-flex gap-2 flex-wrap align-items-center">
+                <button type="submit" id="btnTraHangLoat" class="btn btn-primary px-4 fw-bold">
+                    🔍 Tra hàng loạt
+                </button>
+                <button type="button" id="btnQuetDoanVan" class="btn btn-success px-4 fw-bold" onclick="thucHienQuetDoanVan()">
+                    ⚡ Quét từ mới từ đoạn văn
+                </button>
                 <a href="/" class="btn btn-secondary">🏠 Trang chủ</a>
                 <a href="/tra-tu" class="btn btn-outline-primary">🔍 Tra từ &amp; Dịch</a>
                 <a href="/quan-ly-tu" class="btn btn-outline-success">📋 Quản lí từ</a>
             </div>
         </form>
     </div>
-    <form action="/luu-bo" method="post">${ketQuaHtml}</form>
+    <form action="/luu-bo" method="post" id="formLuuBo">${ketQuaHtml}</form>
 </div>
-<script src="/js/them-tu.js?v=2"></script>
+<script src="/js/global-audio.js?v=4"></script>
+<script src="/js/them-tu.js?v=4"></script>
 </body>
 </html>`;
 }
@@ -938,3 +1007,431 @@ export function renderGenericTemplate(name, dsBo = [], tongSoTu = 0, extra = {})
 }
 
 
+
+
+// =========================================================
+// 19. Render luyen-nho-doan-van.html
+// =========================================================
+export function renderLuyenNhoDoanVan({ taiKhoan = null, dsBo = [], dsDoanVanDaLuu = [] }) {
+    const dsBoOpts = dsBo.map(b => `<option value="${b.id}">${esc(b.tenBo)} (${b.soLuongTu} từ)</option>`).join("");
+    const initialSavedJson = JSON.stringify(dsDoanVanDaLuu || []);
+
+    return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luyện nhớ đoạn văn - Học thuộc &amp; Viết lại tức thì</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/luyen-nho-doan-van.css?v=2">
+</head>
+<body class="bg-light">
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary-gradient shadow-sm sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/luyen-nho-doan-van">
+            <span class="fs-4">📝</span>
+            <span>Luyện Nhớ Đoạn Văn</span>
+        </a>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-warning text-dark fw-bold btn-sm shadow-sm" onclick="moModalKhoBai()">
+                📚 Kho bài đã lưu (<span id="badgeSoLuongBai">${dsDoanVanDaLuu.length}</span>)
+            </button>
+            <a href="/hoc" class="btn btn-outline-light btn-sm">📖 Học từ vựng</a>
+            <a href="/" class="btn btn-light btn-sm fw-semibold">🏠 Trang chủ</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4" style="max-width: 980px;">
+
+    <!-- =========================================================
+         BƯỚC 1: KHUNG THIẾT LẬP / TẠO ĐOẠN VĂN (#cardSetup)
+         ========================================================= -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4" id="cardSetup">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <h3 class="fw-bold text-dark">Phương Pháp Luyện Nhớ &amp; Gõ Lại Đoạn Văn</h3>
+                <p class="text-muted mb-0">Học thuộc từng câu ➔ Thử thách trí nhớ bằng cách viết lại ➔ Chấm điểm từng từ thời gian thực!</p>
+            </div>
+
+            <!-- Tabs chọn phương thức -->
+            <ul class="nav nav-pills nav-justified mb-4 p-1 bg-light rounded-pill border" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill fw-bold" id="tab-ai-tab" data-bs-toggle="pill" data-bs-target="#tab-ai" type="button" role="tab">
+                        🤖 AI sinh đoạn văn thông minh
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-bold" id="tab-nhap-tab" data-bs-toggle="pill" data-bs-target="#tab-nhap" type="button" role="tab">
+                        ✍️ Tự nhập / Dán đoạn văn của bạn
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent">
+                
+                <!-- TAB 1: AI SINH ĐOẠN VĂN -->
+                <div class="tab-pane fade show active" id="tab-ai" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold">🏷️ Chủ đề đoạn văn:</label>
+                            <input type="text" class="form-control" id="aiChuDe" value="Đời sống hàng ngày" placeholder="Ví dụ: Du lịch, Công nghệ, Khách sạn, Sở thích...">
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <span class="badge bg-light text-dark border chip-goiy" onclick="chonChuDe('Đời sống hàng ngày')">☕ Đời sống</span>
+                                <span class="badge bg-light text-dark border chip-goiy" onclick="chonChuDe('Du lịch & Khám phá')">✈️ Du lịch</span>
+                                <span class="badge bg-light text-dark border chip-goiy" onclick="chonChuDe('Công việc & Công sở')">💼 Công sở</span>
+                                <span class="badge bg-light text-dark border chip-goiy" onclick="chonChuDe('Công nghệ & Tương lai')">🤖 Công nghệ</span>
+                                <span class="badge bg-light text-dark border chip-goiy" onclick="chonChuDe('Sức khỏe & Lối sống')">🏃 Sức khỏe</span>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">📏 Độ dài đoạn văn:</label>
+                            <select class="form-select" id="aiDoDai">
+                                <option value="ngan">Ngắn gọn (30 - 50 từ, ~3 câu)</option>
+                                <option value="vua" selected>Vừa phải (60 - 90 từ, ~5 câu) ⭐ Khuyên dùng</option>
+                                <option value="dai">Dài thử thách (100 - 140 từ, ~7 câu)</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">📚 Lồng ghép từ vựng từ bộ của bạn (Tùy chọn):</label>
+                            <select class="form-select" id="aiBoId">
+                                <option value="">-- Sử dụng từ vựng đa dạng tự nhiên do AI đề xuất --</option>
+                                <option value="ALL">⭐ Ưu tiên từ trong TẤT CẢ các bộ của tôi</option>
+                                ${dsBoOpts}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="aiChkLuu" checked>
+                                <label class="form-check-label fw-semibold" for="aiChkLuu">
+                                    💾 Tự động lưu bài này vào kho bài học đã lưu để luyện lại sau này
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-3 text-center">
+                            <button type="button" class="btn btn-primary-gradient px-5 py-3 fw-bold text-white rounded-pill shadow" id="btnTaoDoanVanAi" onclick="taoDoanVanAi()">
+                                ✨ AI Tạo Đoạn Văn &amp; Bắt Đầu Học Thuộc
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: TỰ NHẬP ĐOẠN VĂN -->
+                <div class="tab-pane fade" id="tab-nhap" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">🏷️ Tiêu đề bài học (Tùy chọn):</label>
+                            <input type="text" class="form-control" id="nhapTieuDe" placeholder="Ví dụ: My Favorite Hobby, An Inspiring Story...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">📝 Nội dung đoạn văn tiếng Anh:</label>
+                            <textarea class="form-control" id="nhapNoiDungEn" rows="6" placeholder="Dán hoặc gõ đoạn văn tiếng Anh bạn muốn học thuộc vào đây..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="nhapChkLuu" checked>
+                                <label class="form-check-label fw-semibold" for="nhapChkLuu">
+                                    💾 Lưu bài này vào kho bài học đã lưu
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-3 text-center">
+                            <button type="button" class="btn btn-success px-5 py-3 fw-bold rounded-pill shadow" id="btnBatDauTuNhap" onclick="batDauTuNhap()">
+                                🚀 Bắt Đầu Học Thuộc Đoạn Văn Này
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Gợi ý bài đã lưu -->
+            <div id="quickSavedContainer" class="mt-4 pt-3 border-top" style="${dsDoanVanDaLuu.length > 0 ? '' : 'display:none;'}">
+                <span class="text-muted small fw-semibold me-2">Hoặc chọn nhanh bài đã lưu:</span>
+                <div class="d-inline-flex flex-wrap gap-2 align-items-center mt-2" id="quickSavedChips">
+                    ${dsDoanVanDaLuu.slice(0, 5).map(b => `
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="taiBaiDaLuu(${b.id})">
+                            📄 ${esc(b.tieuDe)} <small class="text-muted">(${b.soTu} từ)</small>
+                        </button>
+                    `).join("")}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SPINNER LOADING STATE -->
+    <div id="aiLoadingBox" class="card border-0 shadow-sm rounded-4 text-center py-5 mb-4" style="display:none;">
+        <div class="spinner-grow text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
+        <h5 class="fw-bold text-primary" id="aiLoadingTitle">🤖 AI đang sáng tác đoạn văn và tạo bản dịch...</h5>
+        <p class="text-muted small mb-0">Đang chuẩn bị câu từ chuẩn ngữ pháp và lồng ghép từ vựng thông minh!</p>
+    </div>
+
+    <!-- =========================================================
+         BƯỚC 2: GIAI ĐOẠN 1 - HỌC THUỘC ĐOẠN VĂN (#cardHocThuoc)
+         ========================================================= -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4" id="cardHocThuoc" style="display:none;">
+        <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1 rounded-pill me-2">
+                    GIAI ĐOẠN 1: HỌC THUỘC
+                </span>
+                <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill" id="badgeSoTuHocThuoc">
+                    0 từ
+                </span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="quayLaiThietLap()">
+                ← Đổi / Chọn bài khác
+            </button>
+        </div>
+        <div class="card-body p-4">
+            <h4 class="fw-bold text-dark text-center mb-3" id="tieuDeHocThuoc">Tiêu đề đoạn văn</h4>
+
+            <!-- Audio controls -->
+            <div class="audio-control-bar p-3 rounded-3 bg-light d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-success fw-bold d-flex align-items-center gap-2 shadow-sm" id="btnPhatToanBai" onclick="phatToanBai()">
+                        <span class="fs-5">🔊</span> <span>Nghe đọc toàn bài</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger fw-bold" id="btnDungPhat" onclick="dungPhatAm()" style="display:none;">
+                        ⏹️ Dừng
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small fw-semibold m-0">Tốc độ đọc:</label>
+                    <select class="form-select form-select-sm" id="selectTocDoDoc" style="width: 105px;">
+                        <option value="1.0">1.0x (Chuẩn)</option>
+                        <option value="0.85" selected>0.85x (Vừa)</option>
+                        <option value="0.75">0.75x (Chậm)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Paragraph text with clickable words -->
+            <div class="paragraph-study-box p-4 rounded-3 bg-white border shadow-sm mb-4" id="boxVanBanHocThuoc">
+                <!-- Sentences and clickable words rendered by JS -->
+            </div>
+
+            <!-- Vietnamese translation -->
+            <div class="mb-4">
+                <button type="button" class="btn btn-sm btn-outline-primary mb-2" onclick="toggleDichVi()">
+                    👁️ <span id="lblToggleDich">Xem bản dịch tiếng Việt</span>
+                </button>
+                <div id="boxDichVi" class="p-3 bg-light rounded-3 border fst-italic text-secondary" style="display:none;"></div>
+            </div>
+
+            <!-- Key vocabulary -->
+            <div id="boxKeyVocab" class="mb-4" style="display:none;">
+                <h6 class="fw-bold text-primary mb-2">💡 Từ vựng tiêu biểu trong bài:</h6>
+                <div id="listKeyVocab" class="row g-2"></div>
+            </div>
+
+            <!-- CTA Transition to Phase 2 -->
+            <div class="text-center pt-3 border-top">
+                <p class="text-muted mb-3">Hãy đọc nhẩm lại 1-2 lần cho đến khi bạn nhớ các câu trong đoạn văn!</p>
+                <button type="button" class="btn btn-primary-gradient px-5 py-3 fw-bold text-white rounded-pill shadow-lg fs-5" onclick="batDauGiaiDoanVietLai()">
+                    ✍️ ĐÃ THUỘC - BẮT ĐẦU VIẾT LẠI (CHẤM TỪNG TỪ) →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         BƯỚC 3: GIAI ĐOẠN 2 - VIẾT LẠI ĐOẠN VĂN (#cardVietLai)
+         ========================================================= -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4" id="cardVietLai" style="display:none;">
+        <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span class="badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill me-2">
+                    GIAI ĐOẠN 2: VIẾT LẠI TỪNG TỪ
+                </span>
+                <span class="fw-bold text-dark" id="tieuDeVietLai">Tiêu đề bài</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="quayLaiHocThuoc()">
+                    📖 Xem lại bài học thuộc
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning text-dark fw-semibold" onclick="khoiDongLaiVietLai()">
+                    🔄 Viết lại từ đầu
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-4">
+            
+            <!-- Live Progress Bar -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-primary">Tiến độ: <span id="lblSoTuDung">0</span> / <span id="lblTongSoTu">0</span> từ</span>
+                    <span class="fw-bold text-success" id="lblPhanTram">0%</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div id="barTienDo" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Live Metrics Bar -->
+            <div class="row g-2 text-center mb-4">
+                <div class="col-3">
+                    <div class="p-2 bg-light rounded-3 border">
+                        <div class="small text-muted">⏱️ Thời gian</div>
+                        <div class="fw-bold text-dark fs-5 font-monospace" id="metricTimer">00:00</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 bg-light rounded-3 border">
+                        <div class="small text-muted">⚡ Tốc độ</div>
+                        <div class="fw-bold text-primary fs-5 font-monospace" id="metricWpm">0 <small class="fs-6">WPM</small></div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 bg-light rounded-3 border">
+                        <div class="small text-muted">🎯 Chính xác</div>
+                        <div class="fw-bold text-success fs-5 font-monospace" id="metricAccuracy">100%</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 bg-light rounded-3 border">
+                        <div class="small text-muted">❌ Lỗi gõ</div>
+                        <div class="fw-bold text-danger fs-5 font-monospace" id="metricErrors">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paragraph Stream Visualizer -->
+            <div class="paragraph-stream-box p-4 rounded-3 bg-white border shadow-sm mb-4" id="boxParagraphStream">
+                <!-- Words stream: Done (green), Current (pulsing blue), Upcoming (dots) -->
+            </div>
+
+            <!-- Real-time Input Box -->
+            <div class="typing-input-card p-4 rounded-4 bg-light border shadow-sm mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold text-secondary small">✍️ Nhập từ tiếp theo (Bấm phím Space hoặc Enter để kiểm tra):</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="goiYKyTuDau()" title="Gợi ý chữ cái đầu của từ hiện tại">
+                            💡 Gợi ý chữ cái
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="liecDoanVanGoc()" title="Xem nhanh toàn văn bản gốc trong 3 giây">
+                            👁️ Liếc bài (3s)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="docTuHienTai()" title="Nghe phát âm từ hiện tại">
+                            🔊 Nghe từ
+                        </button>
+                    </div>
+                </div>
+                <div class="position-relative">
+                    <input type="text"
+                           class="form-control form-control-lg text-center fw-bold fs-4 typing-input"
+                           id="inputTuHienTai"
+                           placeholder="Nhập từ tại đây..."
+                           autocomplete="off"
+                           autocapitalize="none"
+                           spellcheck="false">
+                    <div id="feedbackPill" class="feedback-pill" style="display:none;"></div>
+                </div>
+                <div id="hintText" class="text-danger small fw-semibold mt-2 text-center" style="display:none;"></div>
+            </div>
+
+            <!-- Quick Peek Overlay Box (hidden by default) -->
+            <div id="boxPeekOverlay" class="alert alert-warning py-3 px-4 shadow-sm rounded-3 mt-3" style="display:none;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-dark">👁️ Đang liếc bài gốc (Tự ẩn sau <span id="peekCountdown">3</span>s):</strong>
+                </div>
+                <div id="peekContent" class="text-dark fst-italic"></div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL KHO BÀI ĐÃ LƯU (#modalKhoBai)
+     ========================================================= -->
+<div class="modal fade" id="modalKhoBai" tabindex="-1" aria-labelledby="modalKhoBaiLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="modalKhoBaiLabel">📚 Kho Đoạn Văn Đã Lưu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="searchKhoBai" placeholder="🔍 Tìm kiếm bài đã lưu theo tiêu đề hoặc nội dung..." oninput="locKhoBai(this.value)">
+                </div>
+                <div id="listKhoBaiContainer">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL HOÀN THÀNH BÀI VIẾT (#modalHoanThanh)
+     ========================================================= -->
+<div class="modal fade" id="modalHoanThanh" tabindex="-1" aria-labelledby="modalHoanThanhLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 text-center p-4">
+            <div class="modal-body">
+                <div class="fs-1 mb-2">🎉🏆✨</div>
+                <h3 class="fw-bold text-success mb-2">XUẤT SẮC!</h3>
+                <p class="text-muted">Bạn đã hoàn thành viết lại toàn bộ đoạn văn một cách chuẩn xác!</p>
+                
+                <div class="row g-2 my-3 text-center">
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="text-muted small">⏱️ Thời gian</div>
+                            <div class="fw-bold text-dark fs-4" id="modalResultTime">00:00</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="text-muted small">⚡ Tốc độ</div>
+                            <div class="fw-bold text-primary fs-4" id="modalResultWpm">0 WPM</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="text-muted small">🎯 Độ chính xác</div>
+                            <div class="fw-bold text-success fs-4" id="modalResultAccuracy">100%</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="text-muted small">📚 Tổng số từ</div>
+                            <div class="fw-bold text-dark fs-4" id="modalResultWords">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-2 mt-4 flex-wrap">
+                    <button type="button" class="btn btn-primary px-4 fw-bold" onclick="khoiDongLaiVietLai()" data-bs-dismiss="modal">
+                        🔁 Luyện lại bài này
+                    </button>
+                    <button type="button" class="btn btn-success px-4 fw-bold" id="btnModalLuuBai" onclick="luuBaiHienTaiTuModal()" style="display:none;">
+                        💾 Lưu vào kho bài học
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary px-3" onclick="quayLaiThietLap()" data-bs-dismiss="modal">
+                        📝 Chọn bài khác
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.__INITIAL_SAVED_PARAGRAPHS = ${initialSavedJson};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/global-audio.js?v=4"></script>
+<script src="/js/luyen-nho-doan-van.js?v=2"></script>
+</body>
+</html>`;
+}

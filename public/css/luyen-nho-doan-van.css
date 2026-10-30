@@ -1,0 +1,202 @@
+/* =========================================================
+   LUYỆN NHỚ ĐOẠN VĂN - STYLESHEET
+   Desktop + Tablet + Mobile Responsive
+   ========================================================= */
+
+body {
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1e293b;
+}
+
+.bg-primary-gradient {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+}
+
+.btn-primary-gradient {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    border: none !important;
+    transition: all 0.2s ease;
+}
+
+.btn-primary-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35) !important;
+    filter: brightness(1.05);
+    color: #ffffff !important;
+}
+
+.chip-goiy {
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+}
+
+.chip-goiy:hover {
+    background-color: #e0e7ff !important;
+    color: #4338ca !important;
+    border-color: #c7d2fe !important;
+    transform: translateY(-1px);
+}
+
+/* =========================================================
+   GIAI ĐOẠN 1: HỌC THUỘC
+   ========================================================= */
+
+.paragraph-study-box {
+    font-size: 1.25rem;
+    line-height: 2.3;
+    color: #1e293b;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+}
+
+.study-word {
+    display: inline-block;
+    padding: 2px 4px;
+    margin: 1px 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.study-word:hover {
+    background-color: #e0e7ff;
+    color: #3730a3;
+    transform: translateY(-1px);
+}
+
+.study-word:active {
+    background-color: #c7d2fe;
+}
+
+/* =========================================================
+   GIAI ĐOẠN 2: VIẾT LẠI TỪNG TỪ
+   ========================================================= */
+
+.paragraph-stream-box {
+    font-size: 1.3rem;
+    line-height: 2.6;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    min-height: 140px;
+}
+
+.stream-word {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 2px 3px;
+    border-radius: 6px;
+    vertical-align: middle;
+    transition: all 0.2s ease;
+}
+
+.stream-word.done {
+    color: #16a34a;
+    font-weight: 700;
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.stream-word.done::after {
+    content: " ✓";
+    font-size: 0.85rem;
+    color: #16a34a;
+}
+
+.stream-word.current {
+    color: #1d4ed8;
+    font-weight: 800;
+    background-color: #eff6ff;
+    border: 2px solid #3b82f6;
+    padding: 2px 10px;
+    border-radius: 8px;
+    animation: streamPulse 1.2s infinite ease-in-out;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+}
+
+@keyframes streamPulse {
+    0% { transform: scale(1); box-shadow: 0 0 4px rgba(59, 130, 246, 0.2); }
+    50% { transform: scale(1.06); box-shadow: 0 0 14px rgba(59, 130, 246, 0.45); }
+    100% { transform: scale(1); box-shadow: 0 0 4px rgba(59, 130, 246, 0.2); }
+}
+
+.stream-word.upcoming {
+    color: #94a3b8;
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    font-weight: 500;
+    letter-spacing: 2px;
+}
+
+.typing-input-card {
+    border: 2px solid #e2e8f0;
+}
+
+.typing-input {
+    border-radius: 12px;
+    border: 2.5px solid #cbd5e1;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    padding: 14px 20px;
+}
+
+.typing-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+}
+
+.typing-input.is-correct-flash {
+    border-color: #22c55e !important;
+    background-color: #f0fdf4 !important;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3) !important;
+}
+
+.typing-input.is-wrong-flash {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3) !important;
+    animation: typingShake 0.35s ease;
+}
+
+@keyframes typingShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+
+.feedback-pill {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.feedback-pill.pill-correct {
+    background-color: #dcfce7;
+    color: #15803d;
+}
+
+.feedback-pill.pill-wrong {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Modal styles */
+.saved-item-card {
+    transition: all 0.15s ease;
+    border: 1px solid #e2e8f0;
+}
+
+.saved-item-card:hover {
+    border-color: #818cf8;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+    transform: translateY(-1px);
+}

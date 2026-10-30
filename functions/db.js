@@ -188,3 +188,70 @@ export async function getTuSaiByUser(env, taiKhoanId) {
         .filter(t => (t.soLanSai || 0) > 0)
         .sort((a, b) => (b.soLanSai || 0) - (a.soLanSai || 0));
 }
+
+// =========================================================
+// ĐOẠN VĂN GHI NHỚ (PARAGRAPH MEMORIZATION & RETYPING)
+// =========================================================
+
+export async function luuDoanVanGhiNho(env, { taiKhoanId, tieuDe, noiDungEn, dichVi, soTu }) {
+    const count = Number(soTu) || (noiDungEn ? noiDungEn.trim().split(/\s+/).length : 0);
+    const rows = await sqlQuery(
+        env,
+        `INSERT INTO doan_van_ghi_nho (tai_khoan_id, tieu_de, noi_dung_en, dich_vi, so_tu, ngay_tao)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+         RETURNING id, tieu_de, noi_dung_en, dich_vi, so_tu, ngay_tao`,
+        [Number(taiKhoanId), tieuDe || "Đoạn văn ghi nhớ", noiDungEn, dichVi || "", count]
+    );
+    return rows[0] || null;
+}
+
+export async function getDanhSachDoanVanByUser(env, taiKhoanId) {
+    const rows = await sqlQuery(
+        env,
+        `SELECT id, tai_khoan_id, tieu_de, noi_dung_en, dich_vi, so_tu, ngay_tao
+         FROM doan_van_ghi_nho
+         WHERE tai_khoan_id = $1
+         ORDER BY id DESC`,
+        [Number(taiKhoanId)]
+    );
+    return rows.map(r => ({
+        id: Number(r.id),
+        taiKhoanId: Number(r.tai_khoan_id),
+        tieuDe: r.tieu_de || "Đoạn văn",
+        noiDungEn: r.noi_dung_en || "",
+        dichVi: r.dich_vi || "",
+        soTu: Number(r.so_tu || 0),
+        ngayTao: r.ngay_tao
+    }));
+}
+
+export async function getDoanVanById(env, id, taiKhoanId) {
+    const rows = await sqlQuery(
+        env,
+        `SELECT id, tai_khoan_id, tieu_de, noi_dung_en, dich_vi, so_tu, ngay_tao
+         FROM doan_van_ghi_nho
+         WHERE id = $1 AND tai_khoan_id = $2
+         LIMIT 1`,
+        [Number(id), Number(taiKhoanId)]
+    );
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+        id: Number(r.id),
+        taiKhoanId: Number(r.tai_khoan_id),
+        tieuDe: r.tieu_de || "Đoạn văn",
+        noiDungEn: r.noi_dung_en || "",
+        dichVi: r.dich_vi || "",
+        soTu: Number(r.so_tu || 0),
+        ngayTao: r.ngay_tao
+    };
+}
+
+export async function xoaDoanVan(env, id, taiKhoanId) {
+    await sqlQuery(
+        env,
+        `DELETE FROM doan_van_ghi_nho WHERE id = $1 AND tai_khoan_id = $2`,
+        [Number(id), Number(taiKhoanId)]
+    );
+    return true;
+}

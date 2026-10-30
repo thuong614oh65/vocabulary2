@@ -1053,3 +1053,138 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ VỚI CẤU
 }
 
 
+
+
+// =========================================================
+// 1. TẠO ĐOẠN VĂN LUYỆN NHỚ (AI PARAGRAPH GENERATOR)
+// =========================================================
+export async function taoDoanVanLuyenNho(env, { chuDe = "Đời sống", doDai = "vua", danhSachTu = [] } = {}) {
+    let wordCountTarget = "60-90 từ (khoảng 4-6 câu)";
+    if (doDai === "ngan") wordCountTarget = "30-50 từ (khoảng 3-4 câu ngắn gọn)";
+    if (doDai === "dai") wordCountTarget = "100-140 từ (khoảng 6-8 câu)";
+
+    let tuGoiY = "";
+    if (Array.isArray(danhSachTu) && danhSachTu.length > 0) {
+        tuGoiY = `\nƯu tiên lồng ghép tự nhiên các từ vựng sau của người học vào đoạn văn:\n` +
+            danhSachTu.slice(0, 10).map(t => typeof t === "string" ? t : `${t.tiengAnh || ""} (${t.tiengViet || ""})`).join(", ");
+    }
+
+    const prompt = `Bạn là chuyên gia giảng dạy tiếng Anh bản xứ.
+Nhiệm vụ của bạn là sáng tác một đoạn văn tiếng Anh cực kỳ sinh động, ý nghĩa, tự nhiên và dễ nhớ theo chủ đề: "${chuDe}".
+Độ dài mục tiêu: ${wordCountTarget}.${tuGoiY}
+
+Yêu cầu:
+1. Câu văn mạch lạc, ngữ pháp chuẩn 100%, phong cách hành văn tự nhiên (văn nói hoặc văn kể chuyện thực tế).
+2. Dễ học thuộc, nhịp điệu câu cuốn hút giúp người học luyện gõ lại từng từ chính xác.
+3. Kèm theo bản dịch tiếng Việt chuẩn xác và danh sách 4-6 từ vựng tiêu biểu trong bài.
+
+BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ VỚI CẤU TRÚC:
+{
+  "tieuDe": "Tiêu đề tiếng Anh - Bản dịch tiếng Việt",
+  "noiDungEn": "Đoạn văn tiếng Anh hoàn chỉnh...",
+  "dichVi": "Bản dịch tiếng Việt trôi chảy của toàn bộ đoạn văn...",
+  "danhSachTuChinh": [
+    { "tiengAnh": "word", "phienAm": "/ipa/", "tiengViet": "nghĩa" }
+  ]
+}`;
+
+    const raw = await callGemini(env, prompt, true);
+    const parsed = JSON.parse(cleanJson(raw));
+    const words = (parsed.noiDungEn || "").trim().split(/\s+/).filter(Boolean);
+    parsed.soTu = words.length;
+    return parsed;
+}
+
+// =========================================================
+// 2. DỊCH VÀ PHÂN TÍCH ĐOẠN VĂN NGƯỜI DÙNG TỰ NHẬP
+// =========================================================
+export async function dichVaPhanTichDoanVan(env, noiDungEn) {
+    const text = (noiDungEn || "").trim();
+    if (!text) throw new Error("Nội dung đoạn văn trống.");
+
+    const prompt = `Bạn là chuyên gia dịch thuật và sư phạm tiếng Anh.
+Dưới đây là một đoạn văn tiếng Anh do người học nhập vào để luyện học thuộc:
+
+"""${text}"""
+
+Hãy thực hiện:
+1. Đặt 1 tiêu đề ngắn gọn súc tích cho đoạn văn này (kèm dịch tiếng Việt).
+2. Dịch toàn bộ đoạn văn sang tiếng Việt chuẩn ngữ nghĩa, tự nhiên, dễ hiểu.
+3. Trích xuất 3-5 từ vựng quan trọng nhất kèm phiên âm và nghĩa.
+
+BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ THEO CẤU TRÚC:
+{
+  "tieuDe": "Tiêu đề tiếng Anh - Nghĩa tiếng Việt",
+  "dichVi": "Bản dịch tiếng Việt hoàn chỉnh...",
+  "danhSachTuChinh": [
+    { "tiengAnh": "...", "phienAm": "/.../", "tiengViet": "..." }
+  ]
+}`;
+
+    const raw = await callGemini(env, prompt, true);
+    const parsed = JSON.parse(cleanJson(raw));
+    const words = text.split(/\s+/).filter(Boolean);
+    parsed.soTu = words.length;
+    return parsed;
+}
+
+// =========================================================
+// 3. QUÉT VÀ TRÍCH XUẤT TỪ MỚI TỪ ĐOẠN VĂN (LOẠI BỎ TÊN RIÊNG & TỪ ĐÃ CÓ)
+// =========================================================
+export async function trichXuatTuMoiTuDoanVan(env, doanVan, dsTuDaCo = []) {
+    const text = (doanVan || "").trim();
+    if (!text) return [];
+
+    const setDaCo = new Set(
+        (dsTuDaCo || []).map(w => (typeof w === "string" ? w : (w.tiengAnh || "")).trim().toLowerCase()).filter(Boolean)
+    );
+
+    const daCoSample = Array.from(setDaCo).slice(0, 300).join(", ");
+
+    const prompt = `Bạn là chuyên gia lọc từ vựng tiếng Anh thông minh.
+Dưới đây là một đoạn văn bản tiếng Anh:
+
+"""${text}"""
+
+NHIỆM VỤ QUAN TRỌNG:
+Hãy trích xuất tất cả các TỪ VỰNG TIẾNG ANH MỚI, có giá trị học tập trong bài này để người học lưu vào sổ từ vựng.
+
+CÁC QUY TẮC LỌC NGHIÊM NGẶT (BẮT BUỘC TUÂN THỦ):
+1. LOẠI BỎ TÊN RIÊNG (Proper nouns): Tên người (John, Mary...), tên địa danh (London, Vietnam...), tên công ty/thương hiệu (Google, Apple...), các ngày trong tuần/tháng.
+2. LOẠI BỎ CÁC TỪ CỰC KỲ CƠ BẢN / ĐẠI TỪ / GIỚI TỪ: a, an, the, is, am, are, was, were, be, been, I, you, he, she, it, we, they, my, your, his, her, its, our, their, in, on, at, to, for, with, by, of, and, but, or, so, because, this, that, these, those, not, very, can, will, would, could, should, have, has, had, do, does, did...
+3. LOẠI BỎ CÁC TỪ ĐÃ CÓ TRONG KHO TỪ CỦA HỌC VIÊN:
+   [${daCoSample}]
+4. ĐƯA TỪ VỀ DẠNG NGUYÊN THỂ (Lemma/Base form): ví dụ "innovative" -> innovative, "running" -> run, "better" -> good/better...
+5. Với mỗi từ được chọn, hãy cung cấp phiên âm IPA chuẩn, nghĩa tiếng Việt chính xác theo đúng ngữ cảnh bài đọc, và trích dẫn câu chứa từ đó trong bài.
+
+BẮT BUỘC TRẢ VỀ DUY NHẤT 1 MẢNG JSON HỢP LỆ VỚI CẤU TRÚC:
+[
+  {
+    "tiengAnh": "vocabulary",
+    "phienAm": "/vəˈkæbjələri/",
+    "tiengViet": "từ vựng",
+    "viDu": "Câu văn trích dẫn từ bài đọc..."
+  }
+]`;
+
+    const raw = await callGemini(env, prompt, true);
+    const parsed = JSON.parse(cleanJson(raw));
+    const arr = Array.isArray(parsed) ? parsed : [];
+
+    const finalResult = [];
+    const seenInBatch = new Set();
+    for (const item of arr) {
+        const eng = (item.tiengAnh || "").trim();
+        const low = eng.toLowerCase();
+        if (!eng || seenInBatch.has(low) || setDaCo.has(low)) continue;
+        seenInBatch.add(low);
+        finalResult.push({
+            tiengAnh: eng,
+            phienAm: item.phienAm || `/${low}/`,
+            tiengViet: item.tiengViet || "",
+            viDu: item.viDu || ""
+        });
+    }
+
+    return finalResult;
+}

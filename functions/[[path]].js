@@ -11,7 +11,11 @@ import {
     getBoTuVungByUser,
     getTatCaTuByUser,
     getTuTheoBo,
-    getTuSaiByUser
+    getTuSaiByUser,
+    luuDoanVanGhiNho,
+    getDanhSachDoanVanByUser,
+    getDoanVanById,
+    xoaDoanVan
 } from "./db.js";
 
 import {
@@ -33,7 +37,10 @@ import {
     taoDeQ79TuDong,
     chamDiemDeQ79,
     taoBoDeToeicPart2,
-    taoCotTruyenGhiNho
+    taoCotTruyenGhiNho,
+    taoDoanVanLuyenNho,
+    dichVaPhanTichDoanVan,
+    trichXuatTuMoiTuDoanVan
 } from "./gemini.js";
 
 import {
@@ -63,6 +70,7 @@ import {
     renderDienChoTrong,
     renderNgheDien,
     renderLuyenNoi,
+    renderLuyenNhoDoanVan,
     renderGenericTemplate
 } from "./renderer.js";
 
@@ -811,19 +819,30 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
     if (pathname === "/tra-hang-loat" && method === "POST") {
         const formData = await request.formData();
         const noiDung = formData.get("noiDung") || "";
-        const words = noiDung
-            .split(/[\r\n,;]+/)
-            .map(w => w.trim())
-            .filter(Boolean);
-        const [dsBo, ketQua] = await Promise.all([
+        const cheDoQuet = formData.get("cheDoQuet") || "";
+        const isParagraph = cheDoQuet === "doan-van" || ((noiDung.includes(". ") || noiDung.includes("? ") || noiDung.includes("! ")) && noiDung.trim().split(/\s+/).length >= 10);
+        const [dsBo, tatCaTu] = await Promise.all([
             getBoTuVungByUser(env, taiKhoanId),
-            traTuHangLoat(env, words)
+            getTatCaTuByUser(env, taiKhoanId)
         ]);
+
+        let ketQua = [];
+        if (isParagraph) {
+            ketQua = await trichXuatTuMoiTuDoanVan(env, noiDung, tatCaTu);
+        } else {
+            const words = noiDung
+                .split(/[\r\n,;]+/)
+                .map(w => w.trim())
+                .filter(Boolean);
+            ketQua = await traTuHangLoat(env, words);
+        }
+
         return htmlResponse(renderThemTu({
             noiDung,
             ketQua,
             dsBo,
-            tenBoGoiY: `Bộ ${dsBo.length + 1}`
+            tenBoGoiY: `Bộ ${dsBo.length + 1}`,
+            laQuetDoanVan: isParagraph
         }), sid);
     }
 
@@ -1647,7 +1666,135 @@ Trả về DUY NHẤT mảng JSON hợp lệ gồm các phần tử theo cấu t
         }
     }
 
-    // Default fallback to static asset or home
+    // =========================================================
+    // LUYỆN NHỚ ĐOẠN VĂN (/luyen-nho-doan-van & APIs)
+    // =========================================================
+    if (pathname === "/luyen-nho-doan-van" && method === "GET") {
+        const [dsBo, dsDoanVanDaLuu] = await Promise.all([
+            getBoTuVungByUser(env, taiKhoanId),
+            getDanhSachDoanVanByUser(env, taiKhoanId)
+        ]);
+        return htmlResponse(renderLuyenNhoDoanVan({
+            taiKhoan,
+            dsBo,
+            dsDoanVanDaLuu
+        }), sid);
+    }
+
+    if (pathname === "/api/doan-van/tao-ai" && method === "POST") {
+        try {
+            const body = await request.json();
+            const chuDe = body.chuDe || "Đời sống";
+            const doDai = body.doDai || "vua";
+            const boId = body.boId ? Number(body.boId) : null;
+            let danhSachTu = [];
+            if (boId) {
+                danhSachTu = await getTuTheoBo(env, boId, taiKhoanId);
+            } else if (body.dungTuCuaToi) {
+                const all = await getTatCaTuByUser(env, taiKhoanId);
+                danhSachTu = shuffleArray(all).slice(0, 10);
+            }
+            const data = await taoDoanVanLuyenNho(env, { chuDe, doDai, danhSachTu });
+            return jsonResponse({ ok: true, data }, 200, sid);
+        } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
+            return jsonResponse({ error: "Lỗi AI tạo đoạn văn: " + (err.message || "Vui lòng thử lại") }, 500, sid);
+        }
+    }
+
+    if (pathname === "/api/doan-van/phan-tich" && method === "POST") {
+        try {
+            const body = await request.json();
+            const noiDungEn = (body.noiDungEn || "").trim();
+            if (!noiDungEn) {
+                return jsonResponse({ error: "Vui lòng nhập đoạn văn tiếng Anh!" }, 400, sid);
+            }
+            const data = await dichVaPhanTichDoanVan(env, noiDungEn);
+            return jsonResponse({ ok: true, data }, 200, sid);
+        } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
+            return jsonResponse({ error: "Lỗi phân tích đoạn văn: " + (err.message || "Vui lòng thử lại") }, 500, sid);
+        }
+    }
+
+    if (pathname === "/api/doan-van/luu" && method === "POST") {
+        try {
+            const body = await request.json();
+            const tieuDe = (body.tieuDe || "").trim() || "Đoạn văn ghi nhớ";
+            const noiDungEn = (body.noiDungEn || "").trim();
+            const dichVi = (body.dichVi || "").trim();
+            const soTu = Number(body.soTu) || (noiDungEn ? noiDungEn.split(/\s+/).filter(Boolean).length : 0);
+            if (!noiDungEn) {
+                return jsonResponse({ error: "Nội dung đoạn văn không được để trống!" }, 400, sid);
+            }
+            const item = await luuDoanVanGhiNho(env, {
+                taiKhoanId,
+                tieuDe,
+                noiDungEn,
+                dichVi,
+                soTu
+            });
+            return jsonResponse({ ok: true, item }, 200, sid);
+        } catch (err) {
+            return jsonResponse({ error: "Lỗi lưu đoạn văn: " + (err.message || "Vui lòng thử lại") }, 500, sid);
+        }
+    }
+
+    if (pathname === "/api/doan-van/danh-sach" && method === "GET") {
+        try {
+            const list = await getDanhSachDoanVanByUser(env, taiKhoanId);
+            return jsonResponse({ ok: true, list }, 200, sid);
+        } catch (err) {
+            return jsonResponse({ error: err.message }, 500, sid);
+        }
+    }
+
+    const chiTietDoanVanMatch = pathname.match(/^\/api\/doan-van\/chi-tiet\/(\d+)$/);
+    if (chiTietDoanVanMatch && method === "GET") {
+        try {
+            const dvId = Number(chiTietDoanVanMatch[1]);
+            const item = await getDoanVanById(env, dvId, taiKhoanId);
+            if (!item) return jsonResponse({ error: "Không tìm thấy đoạn văn" }, 404, sid);
+            return jsonResponse({ ok: true, item }, 200, sid);
+        } catch (err) {
+            return jsonResponse({ error: err.message }, 500, sid);
+        }
+    }
+
+    const xoaDoanVanMatch = pathname.match(/^\/api\/doan-van\/xoa\/(\d+)$/);
+    if (xoaDoanVanMatch && (method === "POST" || method === "DELETE")) {
+        try {
+            const dvId = Number(xoaDoanVanMatch[1]);
+            await xoaDoanVan(env, dvId, taiKhoanId);
+            return jsonResponse({ ok: true, message: "Đã xóa bài đã lưu" }, 200, sid);
+        } catch (err) {
+            return jsonResponse({ error: err.message }, 500, sid);
+        }
+    }
+
+    // =========================================================
+    // QUÉT TỪ MỚI TỪ ĐOẠN VĂN (LOẠI BỎ TÊN RIÊNG & TỪ ĐÃ CÓ TRONG KHO)
+    // =========================================================
+    if (pathname === "/api/tu-vung/quet-doan-van" && method === "POST") {
+        try {
+            const body = await request.json();
+            const doanVan = (body.doanVan || "").trim();
+            if (!doanVan) {
+                return jsonResponse({ error: "Vui lòng nhập đoạn văn cần quét từ mới!" }, 400, sid);
+            }
+            const tatCaTu = await getTatCaTuByUser(env, taiKhoanId);
+            const ketQua = await trichXuatTuMoiTuDoanVan(env, doanVan, tatCaTu);
+            return jsonResponse({
+                ok: true,
+                ketQua,
+                tongTuDaQuet: doanVan.split(/\s+/).filter(Boolean).length,
+                soTuDaCo: tatCaTu.length
+            }, 200, sid);
+        } catch (err) {
+            if (err && err.isNeedClientGemini) throw err;
+            return jsonResponse({ error: "Lỗi quét từ mới: " + (err.message || "Vui lòng thử lại") }, 500, sid);
+        }
+    }
     try {
         const res = await env.ASSETS.fetch(request);
         if (res.status !== 404) return res;

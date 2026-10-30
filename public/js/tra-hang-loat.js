@@ -70,27 +70,30 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!file) return;
 
         tepHienTai = file;
-        previewName.textContent = file.name || "Ảnh dán từ clipboard";
-        previewSize.textContent = (file.size / 1024).toFixed(1) + " KB";
+        if (previewName) previewName.textContent = file.name || "Ảnh dán từ clipboard";
+        if (previewSize) previewSize.textContent = (file.size / 1024).toFixed(1) + " KB";
 
         if (file.type.startsWith("image/")) {
             let reader = new FileReader();
             reader.onload = function (e) {
-                previewThumb.src = e.target.result;
-                previewThumb.style.display = "block";
+                if (previewThumb) {
+                    previewThumb.src = e.target.result;
+                    previewThumb.style.display = "block";
+                }
             };
             reader.readAsDataURL(file);
         } else {
-            previewThumb.src = "";
-            previewThumb.style.display = "none";
+            if (previewThumb) {
+                previewThumb.src = "";
+                previewThumb.style.display = "none";
+            }
         }
 
-        previewContainer.style.display = "flex";
+        if (previewContainer) previewContainer.style.display = "flex";
         if (btnTrichXuat) {
             btnTrichXuat.disabled = false;
         }
 
-        // Tự động kích hoạt trích xuất luôn để tiết kiệm thao tác
         thucHienTrichXuat();
     }
 
@@ -100,13 +103,13 @@ document.addEventListener("DOMContentLoaded", function () {
             e.stopPropagation();
             tepHienTai = null;
             if (fileInput) fileInput.value = "";
-            previewContainer.style.display = "none";
+            if (previewContainer) previewContainer.style.display = "none";
             if (btnTrichXuat) btnTrichXuat.disabled = true;
         });
     }
 
     // =========================================================
-    // GỌI API TRÍCH XUẤT TỪ VỰNG
+    // GỌI API TRÍCH XUẤT TỪ VỰNG TỪ ẢNH / TỆP
     // =========================================================
     if (btnTrichXuat) {
         btnTrichXuat.addEventListener("click", function () {
@@ -125,9 +128,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (loadingBox) {
             loadingBox.style.display = "block";
-            loadingText.textContent = tepHienTai.type.startsWith("image/")
-                ? "🤖 Đang nhận diện từ vựng từ ảnh bằng AI..."
-                : "📄 Đang đọc và trích xuất từ vựng từ file...";
+            if (loadingText) {
+                loadingText.textContent = tepHienTai.type.startsWith("image/")
+                    ? "🤖 Đang nhận diện từ vựng từ ảnh bằng AI..."
+                    : "📄 Đang đọc và trích xuất từ vựng từ file...";
+            }
         }
 
         if (btnTrichXuat) btnTrichXuat.disabled = true;
@@ -152,8 +157,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                     hienThongBao(data.thongBao || "Đã trích xuất xong từ vựng!", "success");
-
-                    // Cuộn nhẹ xuống vùng textarea
                     noiDungTextarea.focus();
                     noiDungTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
@@ -207,24 +210,144 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // =========================================================
-    // XỬ LÝ SUBMIT TRA HÀNG LOẠT SIÊU TỐC
+    // SUBMIT TRA HÀNG LOẠT & QUÉT ĐOẠN VĂN
     // =========================================================
-    const formTraHangLoat = document.querySelector('form[action$="/tra-hang-loat"]');
+    const formTraHangLoat = document.getElementById("formTraTu") || document.querySelector('form[action$="/tra-hang-loat"]');
     if (formTraHangLoat) {
         formTraHangLoat.addEventListener("submit", function (e) {
             const textarea = document.getElementById("noiDung");
             if (!textarea || !textarea.value.trim()) {
                 e.preventDefault();
-                hienThongBao("Vui lòng nhập ít nhất một từ vựng trước khi tra!", "danger");
+                hienThongBao("Vui lòng nhập ít nhất một từ vựng hoặc đoạn văn trước khi tra!", "danger");
                 if (textarea) textarea.focus();
                 return false;
             }
-            const btn = document.getElementById("btnTraHangLoat") || formTraHangLoat.querySelector('button[type="submit"]');
+            const btn = document.getElementById("btnTraHangLoat");
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> ⚡ Đang tra cứu siêu tốc...';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> ⚡ Đang tra cứu...';
             }
         });
     }
 
 });
+
+// =========================================================
+// CHUYỂN CHẾ ĐỘ NHẬP: DANH SÁCH TỪ vs ĐOẠN VĂN
+// =========================================================
+function chuyenCheDoThemTu(cheDo) {
+    const inputCheDo = document.getElementById("cheDoQuet");
+    const textarea = document.getElementById("noiDung");
+    const btnTabTu = document.getElementById("btnTabTu");
+    const btnTabDoanVan = document.getElementById("btnTabDoanVan");
+
+    if (cheDo === "doan-van") {
+        if (inputCheDo) inputCheDo.value = "doan-van";
+        if (btnTabTu) { btnTabTu.className = "btn btn-outline-primary fw-semibold"; }
+        if (btnTabDoanVan) { btnTabDoanVan.className = "btn btn-primary fw-semibold"; }
+        if (textarea) {
+            textarea.placeholder = "Dán hoặc viết đoạn văn tiếng Anh vào đây. Hệ thống sẽ tự động lọc bỏ các tên riêng và những từ vựng đã có trong tài khoản của bạn...";
+            textarea.focus();
+        }
+    } else {
+        if (inputCheDo) inputCheDo.value = "tu";
+        if (btnTabTu) { btnTabTu.className = "btn btn-primary fw-semibold"; }
+        if (btnTabDoanVan) { btnTabDoanVan.className = "btn btn-outline-primary fw-semibold"; }
+        if (textarea) {
+            textarea.placeholder = "hello\napple\ncomputer\n(Hoặc thêm ảnh/file ở trên để hệ thống tự điền)";
+            textarea.focus();
+        }
+    }
+}
+window.chuyenCheDoThemTu = chuyenCheDoThemTu;
+
+function thucHienQuetDoanVan() {
+    const textarea = document.getElementById("noiDung");
+    if (!textarea || !textarea.value.trim()) {
+        alert("Vui lòng dán hoặc viết đoạn văn tiếng Anh cần quét từ mới!");
+        if (textarea) textarea.focus();
+        return;
+    }
+    const inputCheDo = document.getElementById("cheDoQuet");
+    if (inputCheDo) inputCheDo.value = "doan-van";
+
+    const btn = document.getElementById("btnQuetDoanVan");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> 🤖 Đang quét từ mới & lọc tên riêng...';
+    }
+
+    const form = document.getElementById("formTraTu") || textarea.closest("form");
+    if (form) form.submit();
+}
+window.thucHienQuetDoanVan = thucHienQuetDoanVan;
+
+// =========================================================
+// CHỌN / BỎ CHỌN TỪ TRONG KẾT QUẢ ĐỂ LƯU
+// =========================================================
+function toggleChonTatCaLuu(isCheck) {
+    const checkboxes = document.querySelectorAll(".chk-luu-item");
+    checkboxes.forEach(chk => {
+        chk.checked = !!isCheck;
+        capNhatDongLuu(chk);
+    });
+    capNhatDemTuDuocChon();
+}
+window.toggleChonTatCaLuu = toggleChonTatCaLuu;
+
+function capNhatDongLuu(chk) {
+    const tr = chk.closest("tr");
+    if (!tr) return;
+    const isChecked = chk.checked;
+    const inputs = tr.querySelectorAll("input:not(.chk-luu-item)");
+    inputs.forEach(inp => {
+        inp.disabled = !isChecked;
+    });
+    if (isChecked) {
+        tr.classList.remove("table-secondary", "opacity-50");
+    } else {
+        tr.classList.add("table-secondary", "opacity-50");
+    }
+    capNhatDemTuDuocChon();
+}
+window.capNhatDongLuu = capNhatDongLuu;
+
+function capNhatDemTuDuocChon() {
+    const checked = document.querySelectorAll(".chk-luu-item:checked").length;
+    const lbl = document.getElementById("lblSoTuDuocChon");
+    if (lbl) lbl.textContent = checked;
+
+    const btnLuu = document.getElementById("btnXacNhanLuu");
+    if (btnLuu) {
+        btnLuu.disabled = (checked === 0);
+    }
+}
+window.capNhatDemTuDuocChon = capNhatDemTuDuocChon;
+
+function xuLyChonBo(val) {
+    const inputTenBo = document.getElementById("inputTenBo");
+    if (!inputTenBo) return;
+    if (val && val.trim() !== "") {
+        inputTenBo.disabled = true;
+        inputTenBo.classList.add("bg-secondary-subtle");
+    } else {
+        inputTenBo.disabled = false;
+        inputTenBo.classList.remove("bg-secondary-subtle");
+    }
+}
+window.xuLyChonBo = xuLyChonBo;
+
+function docTu(tu) {
+    if (!tu) return;
+    if (window.phatAmThanh) {
+        window.phatAmThanh(tu);
+        return;
+    }
+    if (!window.speechSynthesis) return;
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    const u = new SpeechSynthesisUtterance(tu);
+    u.lang = "en-US";
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+}
+window.docTu = docTu;
